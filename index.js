@@ -12,6 +12,7 @@ const {
 } = process.env;
 
 const ANNOUNCE_CHANNEL_ID = '1509993539176759479';
+const ADMIN_ROLE_ID = '1510000218454888559';
 const COOLDOWN_MS = 60 * 60 * 1000; // 1 hour
 
 // ── Persistent File Paths ─────────────────────────────────────
@@ -19,15 +20,34 @@ const KEYS_FILE = path.join(__dirname, 'keys.json');
 const COOLDOWNS_FILE = path.join(__dirname, 'cooldowns.json');
 
 // ── Key storage maps ──────────────────────────────────────────
+// validKeys: key => { expiresAt, generatedBy, duration }
 let validKeys = new Map();
-let userCooldown = new Map();
+let userCooldown = new Map(); // userId => generatedAt
+
+// Helper to check if a user has the Admin role
+function hasAdminRole(member) {
+    if (!member) return false;
+    const roles = member.roles;
+    if (Array.isArray(roles)) {
+        return roles.includes(ADMIN_ROLE_ID);
+    }
+    return roles.cache.has(ADMIN_ROLE_ID);
+}
 
 // Load data from disk if it exists
 function loadData() {
     try {
         if (fs.existsSync(KEYS_FILE)) {
             const data = JSON.parse(fs.readFileSync(KEYS_FILE, 'utf8'));
-            validKeys = new Map(Object.entries(data));
+            validKeys = new Map();
+            for (const [k, val] of Object.entries(data)) {
+                if (typeof val === 'number') {
+                    // Upgrade old key format to new object format safely
+                    validKeys.set(k, { expiresAt: val, generatedBy: 'unknown', duration: '1h' });
+                } else {
+                    validKeys.set(k, val);
+                }
+            }
             console.log(`[LumoHub] Loaded ${validKeys.size} keys from disk.`);
         }
         if (fs.existsSync(COOLDOWNS_FILE)) {
@@ -60,16 +80,23 @@ function generateKey() {
 }
 
 function formatCountdown(ms) {
-    const m = Math.floor(ms / 60000);
-    const s = Math.floor((ms % 60000) / 1000);
-    return `${m}m ${s}s`;
+    if (ms > 365 * 24 * 60 * 60 * 1000) return 'Lifetime';
+    const days = Math.floor(ms / (24 * 60 * 60 * 1000));
+    const hours = Math.floor((ms % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
+    const minutes = Math.floor((ms % (60 * 60 * 1000)) / 60000);
+    
+    let str = '';
+    if (days > 0) str += `${days}d `;
+    if (hours > 0) str += `${hours}h `;
+    str += `${minutes}m`;
+    return str;
 }
 
 function pruneExpired() {
     const now = Date.now();
     let changed = false;
-    for (const [key, exp] of validKeys.entries()) {
-        if (exp < now) {
+    for (const [key, data] of validKeys.entries()) {
+        if (data.expiresAt < now) {
             validKeys.delete(key);
             changed = true;
         }
@@ -107,11 +134,32 @@ const commands = [
         .toJSON(),
     new SlashCommandBuilder()
         .setName('keyinfo')
-        .setDescription('Check how long your key has remaining')
+        .setDescription('Check details of your active keys')
         .toJSON(),
     new SlashCommandBuilder()
         .setName('revoke')
-        .setDescription('Clear your cooldown to get a new key')
+        .setDescription('Revoke all active keys & cooldown of a user (Admin Only)')
+        .addUserOption(option => 
+            option.setName('user')
+                .setDescription('The user whose keys and cooldown you want to revoke')
+                .setRequired(true))
+        .toJSON(),
+    new SlashCommandBuilder()
+        .setName('createkey')
+        .setDescription('Create a custom duration premium key (Admin Only)')
+        .addStringOption(option =>
+            option.setName('duration')
+                .setDescription('The duration of the key')
+                .setRequired(true)
+                .addChoices(
+                    { name: '1 Hour', value: '1h' },
+                    { name: '24 Hours', value: '24h' },
+                    { name: '2 Weeks', value: '2w' },
+                    { name: '1 Month', value: '1m' },
+                    { name: '6 Months', value: '6m' },
+                    { name: '1 Year', value: '1y' },
+                    { name: 'Lifetime', value: 'lifetime' }
+                ))
         .toJSON()
 ];
 
@@ -134,29 +182,34 @@ client.once('clientReady', () => {
 client.on('interactionCreate', async interaction => {
     if (!interaction.isChatInputCommand()) return;
 
-    const { commandName, user, guildId } = interaction;
+    const { commandName, user, guildId, member } = interaction;
 
     if (guildId !== GUILD_ID) {
         return interaction.reply({ content: '❌ Use this in the **LumoHub** server!', ephemeral: true });
     }
 
-    // ── /generate ─────────────────────────────────────────────
+    // ── /generate (1-hour key, 1-hour cooldown) ────────────────
     if (commandName === 'generate') {
         const now = Date.now();
         const lastGen = userCooldown.get(user.id);
 
         if (lastGen && now - lastGen < COOLDOWN_MS) {
             const remaining = COOLDOWN_MS - (now - lastGen);
+            const minutesLeft = Math.ceil(remaining / 60000);
             return interaction.reply({
-                content: `⏳ You already have an active key!\nTry again in **${formatCountdown(remaining)}**.`,
+                content: `⏳ You already have an active key!\nTry again in **${minutesLeft}m**.`,
                 ephemeral: true
             });
         }
 
         const key = generateKey();
-        validKeys.set(key, now + COOLDOWN_MS);
+        validKeys.set(key, {
+            expiresAt: now + COOLDOWN_MS,
+            generatedBy: user.id,
+            duration: '1h'
+        });
         userCooldown.set(user.id, now);
-        saveData(); // Persist changes immediately
+        saveData();
 
         // Private reply
         const privateEmbed = new EmbedBuilder()
@@ -190,25 +243,137 @@ client.on('interactionCreate', async interaction => {
 
     // ── /keyinfo ──────────────────────────────────────────────
     if (commandName === 'keyinfo') {
-        const lastGen = userCooldown.get(user.id);
-        if (!lastGen) return interaction.reply({ content: '❌ No active key. Use `/generate`!', ephemeral: true });
-        const remaining = (lastGen + COOLDOWN_MS) - Date.now();
-        if (remaining <= 0) return interaction.reply({ content: '⌛ Key **expired**. Use `/generate`!', ephemeral: true });
+        pruneExpired();
+        
+        // Find keys generated by this user
+        const myKeys = [];
+        const now = Date.now();
+        for (const [key, data] of validKeys.entries()) {
+            if (data.generatedBy === user.id) {
+                myKeys.push({ key, expiresAt: data.expiresAt, duration: data.duration });
+            }
+        }
+
+        if (myKeys.length === 0) {
+            return interaction.reply({ content: '❌ You have no active keys. Use `/generate` to get one!', ephemeral: true });
+        }
 
         const embed = new EmbedBuilder()
             .setColor(0x7c3aed)
-            .setTitle('⏳ Key Status')
-            .setDescription(`Expires in **${formatCountdown(remaining)}**.`)
+            .setTitle('⏳ Your Active Keys')
             .setFooter({ text: 'LumoHub • discord.gg/KeJDfYV4QR' });
+
+        myKeys.forEach((k, index) => {
+            const remaining = k.expiresAt - now;
+            embed.addFields({
+                name: `Key #${index + 1} (${k.duration})`,
+                value: `\`\`\`${k.key}\`\`\`\n**Expires in:** ${formatCountdown(remaining)}`
+            });
+        });
 
         return interaction.reply({ embeds: [embed], ephemeral: true });
     }
 
-    // ── /revoke ───────────────────────────────────────────────
+    // ── /revoke (Admin Only) ──────────────────────────────────
     if (commandName === 'revoke') {
-        userCooldown.delete(user.id);
+        if (!hasAdminRole(member)) {
+            return interaction.reply({ content: '❌ You do not have permission to use this command!', ephemeral: true });
+        }
+
+        const targetUser = interaction.options.getUser('user');
+        
+        // Remove target user's cooldown
+        userCooldown.delete(targetUser.id);
+
+        // Remove any keys owned by the target user
+        let keysRevokedCount = 0;
+        for (const [key, data] of validKeys.entries()) {
+            if (data.generatedBy === targetUser.id) {
+                validKeys.delete(key);
+                keysRevokedCount++;
+            }
+        }
+
         saveData();
-        return interaction.reply({ content: '✅ Cooldown cleared. Use `/generate` for a new key.', ephemeral: true });
+
+        const embed = new EmbedBuilder()
+            .setColor(0xef4444)
+            .setTitle('🚫 Access Revoked')
+            .setDescription(`Successfully revoked access for **${targetUser.username}**!`)
+            .addFields(
+                { name: '👥 User ID', value: `\`${targetUser.id}\``, inline: true },
+                { name: '🔑 Keys Revoked', value: `**${keysRevokedCount}**`, inline: true },
+                { name: '⏳ Cooldown Cleared', value: 'Yes', inline: true }
+            )
+            .setTimestamp();
+
+        return interaction.reply({ embeds: [embed] });
+    }
+
+    // ── /createkey (Admin Only) ───────────────────────────────
+    if (commandName === 'createkey') {
+        if (!hasAdminRole(member)) {
+            return interaction.reply({ content: '❌ You do not have permission to use this command!', ephemeral: true });
+        }
+
+        const durationChoice = interaction.options.getString('duration');
+        const now = Date.now();
+        
+        // Map durations to milliseconds
+        let durationMs = 0;
+        let durationLabel = '';
+
+        switch (durationChoice) {
+            case '1h':
+                durationMs = 60 * 60 * 1000;
+                durationLabel = '1 Hour';
+                break;
+            case '24h':
+                durationMs = 24 * 60 * 60 * 1000;
+                durationLabel = '24 Hours';
+                break;
+            case '2w':
+                durationMs = 14 * 24 * 60 * 60 * 1000;
+                durationLabel = '2 Weeks';
+                break;
+            case '1m':
+                durationMs = 30 * 24 * 60 * 60 * 1000;
+                durationLabel = '1 Month';
+                break;
+            case '6m':
+                durationMs = 180 * 24 * 60 * 60 * 1000;
+                durationLabel = '6 Months';
+                break;
+            case '1y':
+                durationMs = 365 * 24 * 60 * 60 * 1000;
+                durationLabel = '1 Year';
+                break;
+            case 'lifetime':
+                durationMs = 100 * 365 * 24 * 60 * 60 * 1000; // 100 years
+                durationLabel = 'Lifetime';
+                break;
+        }
+
+        const key = generateKey();
+        validKeys.set(key, {
+            expiresAt: now + durationMs,
+            generatedBy: user.id, // Marked as generated by the admin
+            duration: durationLabel
+        });
+        saveData();
+
+        const embed = new EmbedBuilder()
+            .setColor(0x10b981)
+            .setTitle('💎 Custom Premium Key Created')
+            .setDescription(`\`\`\`${key}\`\`\``)
+            .addFields(
+                { name: '⏳ Duration', value: `**${durationLabel}**`, inline: true },
+                { name: '👮 Created By', value: `<@${user.id}>`, inline: true }
+            )
+            .setFooter({ text: 'LumoHub • Premium Key' })
+            .setTimestamp();
+
+        return interaction.reply({ embeds: [embed] });
     }
 });
 
