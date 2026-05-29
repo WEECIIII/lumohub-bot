@@ -12,7 +12,8 @@ const {
 } = process.env;
 
 const ANNOUNCE_CHANNEL_ID = '1509993539176759479';
-const ADMIN_ROLE_ID = '1509998989813088521';
+const OWNER_ROLE_ID = '1509998989813088521';
+const KEYS_ROLE_ID = '1510000218454888559';
 const WELCOME_CHANNEL_ID = '1509986939372179639';
 const AUTO_ROLE_ID = '1510000443386892329';
 const COOLDOWN_MS = 60 * 60 * 1000; // 1 hour
@@ -26,14 +27,27 @@ const COOLDOWNS_FILE = path.join(__dirname, 'cooldowns.json');
 let validKeys = new Map();
 let userCooldown = new Map(); // userId => generatedAt
 
-// Helper to check if a user has the Admin role
-function hasAdminRole(member) {
+// Helper to check if a user has the Keys Role OR the Owner Role (can access key commands)
+function hasKeysRole(member) {
+    if (!member) return false;
+    const roles = member.roles;
+    const checkRole = (roleId) => {
+        if (Array.isArray(roles)) {
+            return roles.includes(roleId);
+        }
+        return roles.cache.has(roleId);
+    };
+    return checkRole(KEYS_ROLE_ID) || checkRole(OWNER_ROLE_ID);
+}
+
+// Helper to check if a user has the Owner Role (can access admin/welcome commands)
+function hasOwnerRole(member) {
     if (!member) return false;
     const roles = member.roles;
     if (Array.isArray(roles)) {
-        return roles.includes(ADMIN_ROLE_ID);
+        return roles.includes(OWNER_ROLE_ID);
     }
-    return roles.cache.has(ADMIN_ROLE_ID);
+    return roles.cache.has(OWNER_ROLE_ID);
 }
 
 // Load data from disk if it exists
@@ -326,9 +340,9 @@ client.on('interactionCreate', async interaction => {
         return interaction.reply({ embeds: [embed], ephemeral: true });
     }
 
-    // ── /revoke (Admin Only) ──────────────────────────────────
+    // ── /revoke (Keys Role or Owner Only) ─────────────────────
     if (commandName === 'revoke') {
-        if (!hasAdminRole(member)) {
+        if (!hasKeysRole(member)) {
             return interaction.reply({ content: '❌ You do not have permission to use this command!', ephemeral: true });
         }
 
@@ -362,9 +376,9 @@ client.on('interactionCreate', async interaction => {
         return interaction.reply({ embeds: [embed] });
     }
 
-    // ── /createkey (Admin Only) ───────────────────────────────
+    // ── /createkey (Keys Role or Owner Only) ──────────────────
     if (commandName === 'createkey') {
-        if (!hasAdminRole(member)) {
+        if (!hasKeysRole(member)) {
             return interaction.reply({ content: '❌ You do not have permission to use this command!', ephemeral: true });
         }
 
@@ -428,9 +442,9 @@ client.on('interactionCreate', async interaction => {
         return interaction.reply({ embeds: [embed] });
     }
 
-    // ── /testwelcome (Admin Only) ─────────────────────────────
+    // ── /testwelcome (Owner Only) ─────────────────────────────
     if (commandName === 'testwelcome') {
-        if (!hasAdminRole(member)) {
+        if (!hasOwnerRole(member)) {
             return interaction.reply({ content: '❌ You do not have permission to use this command!', ephemeral: true });
         }
 
@@ -456,9 +470,9 @@ client.on('interactionCreate', async interaction => {
         }
     }
 
-    // ── /poststatus (Admin Only) ──────────────────────────────
+    // ── /poststatus (Owner Only) ──────────────────────────────
     if (commandName === 'poststatus') {
-        if (!hasAdminRole(member)) {
+        if (!hasOwnerRole(member)) {
             return interaction.reply({ content: '❌ You do not have permission to use this command!', ephemeral: true });
         }
 
