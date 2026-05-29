@@ -162,6 +162,10 @@ const commands = [
                     { name: '1 Year', value: '1y' },
                     { name: 'Lifetime', value: 'lifetime' }
                 ))
+        .toJSON(),
+    new SlashCommandBuilder()
+        .setName('testwelcome')
+        .setDescription('Test the welcome embed and message in the welcome channel (Admin Only)')
         .toJSON()
 ];
 
@@ -418,6 +422,34 @@ client.on('interactionCreate', async interaction => {
             .setTimestamp();
 
         return interaction.reply({ embeds: [embed] });
+    }
+
+    // ── /testwelcome (Admin Only) ─────────────────────────────
+    if (commandName === 'testwelcome') {
+        if (!hasAdminRole(member)) {
+            return interaction.reply({ content: '❌ You do not have permission to use this command!', ephemeral: true });
+        }
+
+        try {
+            const channel = interaction.guild.channels.cache.get(WELCOME_CHANNEL_ID);
+            if (channel) {
+                const welcomeEmbed = new EmbedBuilder()
+                    .setTitle('✨ Welcome to LumoHub! ✨')
+                    .setDescription(`Welcome to the server, ${interaction.member}! We're thrilled to have you here.\n\n🔑 Use the **/generate** command to get your 1-hour premium key and unlock our Roblox exploit suite!\n\n💬 Be sure to check out the server channels and enjoy your stay!`)
+                    .setColor(0xFECC23) // LumoHub Golden Hex
+                    .setThumbnail(interaction.user.displayAvatarURL({ forceStatic: true, size: 256 }))
+                    .setFooter({ text: 'LumoHub Bot • Premium Exploiting' })
+                    .setTimestamp();
+
+                await channel.send({ content: `Welcome ${interaction.member}! (TEST MODE)`, embeds: [welcomeEmbed] });
+                return interaction.reply({ content: `✅ Successfully sent a test welcome message to <#${WELCOME_CHANNEL_ID}>!`, ephemeral: true });
+            } else {
+                return interaction.reply({ content: `❌ Welcome channel with ID ${WELCOME_CHANNEL_ID} not found in this guild!`, ephemeral: true });
+            }
+        } catch (err) {
+            console.error('[LumoHub] Test welcome failed:', err.message);
+            return interaction.reply({ content: `❌ Failed to send test welcome message: ${err.message}`, ephemeral: true });
+        }
     }
 });
 
