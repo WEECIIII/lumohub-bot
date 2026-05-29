@@ -13,6 +13,8 @@ const {
 
 const ANNOUNCE_CHANNEL_ID = '1509993539176759479';
 const ADMIN_ROLE_ID = '1510000218454888559';
+const WELCOME_CHANNEL_ID = '1509986939372179639';
+const AUTO_ROLE_ID = '1510000443386892329';
 const COOLDOWN_MS = 60 * 60 * 1000; // 1 hour
 
 // ── Persistent File Paths ─────────────────────────────────────
@@ -171,12 +173,54 @@ async function registerCommands() {
 }
 
 // ── Discord client ────────────────────────────────────────────
-const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+const client = new Client({ 
+    intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMembers
+    ] 
+});
 
 client.once('ready', () => {
     console.log(`[LumoHub] Logged in as ${client.user.tag}`);
     client.user.setActivity('LumoHub | /generate');
     setInterval(pruneExpired, 5 * 60 * 1000);
+});
+
+// Welcome Message and Auto-Role Logic
+client.on('guildMemberAdd', async member => {
+    // 1. Assign Auto-Role
+    try {
+        const role = member.guild.roles.cache.get(AUTO_ROLE_ID);
+        if (role) {
+            await member.roles.add(role);
+            console.log(`[LumoHub] Auto-role ${role.name} assigned to ${member.user.tag}`);
+        } else {
+            console.warn(`[LumoHub] Auto-role with ID ${AUTO_ROLE_ID} not found in cache.`);
+        }
+    } catch (err) {
+        console.error('[LumoHub] Failed to assign auto-role:', err.message);
+    }
+
+    // 2. Send Embedded Welcome Message
+    try {
+        const channel = member.guild.channels.cache.get(WELCOME_CHANNEL_ID);
+        if (channel) {
+            const welcomeEmbed = new EmbedBuilder()
+                .setTitle('✨ Welcome to LumoHub! ✨')
+                .setDescription(`Welcome to the server, ${member}! We're thrilled to have you here.\n\n🔑 Use the **/generate** command to get your 1-hour premium key and unlock our Roblox exploit suite!\n\n💬 Be sure to check out the server channels and enjoy your stay!`)
+                .setColor(0xFECC23) // LumoHub Golden Hex
+                .setThumbnail(member.user.displayAvatarURL({ forceStatic: true, size: 256 }))
+                .setFooter({ text: 'LumoHub Bot • Premium Exploiting' })
+                .setTimestamp();
+
+            await channel.send({ content: `Welcome ${member}!`, embeds: [welcomeEmbed] });
+            console.log(`[LumoHub] Welcome message sent for ${member.user.tag}`);
+        } else {
+            console.warn(`[LumoHub] Welcome channel with ID ${WELCOME_CHANNEL_ID} not found.`);
+        }
+    } catch (err) {
+        console.error('[LumoHub] Failed to send welcome message:', err.message);
+    }
 });
 
 client.on('interactionCreate', async interaction => {
