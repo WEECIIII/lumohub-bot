@@ -166,6 +166,10 @@ const commands = [
     new SlashCommandBuilder()
         .setName('testwelcome')
         .setDescription('Test the welcome embed and message in the welcome channel (Admin Only)')
+        .toJSON(),
+    new SlashCommandBuilder()
+        .setName('poststatus')
+        .setDescription('Post the LumoHub game execution status to the status channel (Admin Only)')
         .toJSON()
 ];
 
@@ -449,6 +453,40 @@ client.on('interactionCreate', async interaction => {
         } catch (err) {
             console.error('[LumoHub] Test welcome failed:', err.message);
             return interaction.reply({ content: `❌ Failed to send test welcome message: ${err.message}`, ephemeral: true });
+        }
+    }
+
+    // ── /poststatus (Admin Only) ──────────────────────────────
+    if (commandName === 'poststatus') {
+        if (!hasAdminRole(member)) {
+            return interaction.reply({ content: '❌ You do not have permission to use this command!', ephemeral: true });
+        }
+
+        const STATUS_CHANNEL_ID = '1509993493060128839';
+
+        try {
+            const channel = interaction.guild.channels.cache.get(STATUS_CHANNEL_ID);
+            if (channel) {
+                const statusEmbed = new EmbedBuilder()
+                    .setTitle('📢 LumoHub | Official Game Status')
+                    .setDescription('Current execution status of our supported Roblox scripts.')
+                    .setColor(0xFECC23) // LumoHub gold color
+                    .addFields(
+                        { name: '🟢 Streetz War 2', value: '```Active & Working```', inline: false },
+                        { name: '⏳ Future Projects', value: '*More games coming soon...*', inline: false }
+                    )
+                    .setThumbnail(interaction.guild.iconURL({ dynamic: true, size: 256 }) || null)
+                    .setFooter({ text: 'LumoHub • Premium Exploiting' })
+                    .setTimestamp();
+
+                await channel.send({ embeds: [statusEmbed] });
+                return interaction.reply({ content: `✅ Successfully posted the status embed to <#${STATUS_CHANNEL_ID}>!`, ephemeral: true });
+            } else {
+                return interaction.reply({ content: `❌ Status channel with ID ${STATUS_CHANNEL_ID} not found in this guild!`, ephemeral: true });
+            }
+        } catch (err) {
+            console.error('[LumoHub] Post status failed:', err.message);
+            return interaction.reply({ content: `❌ Failed to send status message: ${err.message}`, ephemeral: true });
         }
     }
 });
