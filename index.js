@@ -1,6 +1,8 @@
 require('dotenv').config();
 const { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const http = require('http');
+const fs = require('fs');
+const path = require('path');
 
 const {
     DISCORD_TOKEN,
@@ -12,9 +14,44 @@ const {
 const ANNOUNCE_CHANNEL_ID = '1509993539176759479';
 const COOLDOWN_MS = 60 * 60 * 1000; // 1 hour
 
-// ── Key storage (in-memory) ───────────────────────────────────
-const validKeys  = new Map(); // key => expiresAt
-const userCooldown = new Map(); // userId => generatedAt
+// ── Persistent File Paths ─────────────────────────────────────
+const KEYS_FILE = path.join(__dirname, 'keys.json');
+const COOLDOWNS_FILE = path.join(__dirname, 'cooldowns.json');
+
+// ── Key storage maps ──────────────────────────────────────────
+let validKeys = new Map();
+let userCooldown = new Map();
+
+// Load data from disk if it exists
+function loadData() {
+    try {
+        if (fs.existsSync(KEYS_FILE)) {
+            const data = JSON.parse(fs.readFileSync(KEYS_FILE, 'utf8'));
+            validKeys = new Map(Object.entries(data));
+            console.log(`[LumoHub] Loaded ${validKeys.size} keys from disk.`);
+        }
+        if (fs.existsSync(COOLDOWNS_FILE)) {
+            const data = JSON.parse(fs.readFileSync(COOLDOWNS_FILE, 'utf8'));
+            userCooldown = new Map(Object.entries(data));
+            console.log(`[LumoHub] Loaded ${userCooldown.size} cooldowns from disk.`);
+        }
+    } catch (e) {
+        console.error('[LumoHub] Load data error:', e.message);
+    }
+}
+
+// Save data to disk
+function saveData() {
+    try {
+        const keysObj = Object.fromEntries(validKeys);
+        fs.writeFileSync(KEYS_FILE, JSON.stringify(keysObj, null, 2));
+
+        const cooldownsObj = Object.fromEntries(userCooldown);
+        fs.writeFileSync(COOLDOWNS_FILE, JSON.stringify(cooldownsObj, null, 2));
+    } catch (e) {
+        console.error('[LumoHub] Save data error:', e.message);
+    }
+}
 
 function generateKey() {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -30,10 +67,18 @@ function formatCountdown(ms) {
 
 function pruneExpired() {
     const now = Date.now();
+    let changed = false;
     for (const [key, exp] of validKeys.entries()) {
-        if (exp < now) validKeys.delete(key);
+        if (exp < now) {
+            validKeys.delete(key);
+            changed = true;
+        }
     }
+    if (changed) saveData();
 }
+
+// Load initial data
+loadData();
 
 // ── HTTP server (Roblox reads /keys to validate) ──────────────
 const server = http.createServer((req, res) => {
@@ -52,7 +97,6 @@ const server = http.createServer((req, res) => {
 
 server.listen(PORT, () => {
     console.log(`[LumoHub] HTTP key server running on port ${PORT}`);
-    console.log(`[LumoHub] Key endpoint: http://localhost:${PORT}/keys`);
 });
 
 // ── Discord slash commands ────────────────────────────────────
@@ -84,8 +128,7 @@ const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 client.once('clientReady', () => {
     console.log(`[LumoHub] Logged in as ${client.user.tag}`);
     client.user.setActivity('LumoHub | /generate');
-    // Auto prune every 10 minutes
-    setInterval(pruneExpired, 10 * 60 * 1000);
+    setInterval(pruneExpired, 5 * 60 * 1000);
 });
 
 client.on('interactionCreate', async interaction => {
@@ -110,12 +153,12 @@ client.on('interactionCreate', async interaction => {
             });
         }
 
-        // Generate and store immediately — no external API needed
         const key = generateKey();
         validKeys.set(key, now + COOLDOWN_MS);
         userCooldown.set(user.id, now);
+        saveData(); // Persist changes immediately
 
-        // Private reply with the key
+        // Private reply
         const privateEmbed = new EmbedBuilder()
             .setColor(0x7c3aed)
             .setTitle('🔑 LumoHub Key Generated')
@@ -143,8 +186,6 @@ client.on('interactionCreate', async interaction => {
         } catch (e) {
             console.error('[LumoHub] Announce error:', e.message);
         }
-
-        console.log(`[LumoHub] Key generated for ${user.username}: ${key}`);
     }
 
     // ── /keyinfo ──────────────────────────────────────────────
@@ -166,6 +207,7 @@ client.on('interactionCreate', async interaction => {
     // ── /revoke ───────────────────────────────────────────────
     if (commandName === 'revoke') {
         userCooldown.delete(user.id);
+        saveData();
         return interaction.reply({ content: '✅ Cooldown cleared. Use `/generate` for a new key.', ephemeral: true });
     }
 });
