@@ -173,7 +173,7 @@ async function registerCommands() {
 // ── Discord client ────────────────────────────────────────────
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
-client.once('clientReady', () => {
+client.once('ready', () => {
     console.log(`[LumoHub] Logged in as ${client.user.tag}`);
     client.user.setActivity('LumoHub | /generate');
     setInterval(pruneExpired, 5 * 60 * 1000);
