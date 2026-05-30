@@ -302,7 +302,7 @@ client.on('interactionCreate', async interaction => {
             const dmEmbed = new EmbedBuilder()
                 .setColor(0x7c3aed)
                 .setTitle('🔑 Your LumoHub Premium Key')
-                .setDescription(`Here is your key so you don't forget it!\n\`\`\`${key}\`\`\``)
+                .setDescription(`Here is your key so you don't lose it!\n\`\`\`${key}\`\`\``)
                 .addFields(
                     { name: '⏳ Expires In', value: '**1 hour**', inline: true }
                 )
