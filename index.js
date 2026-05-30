@@ -553,7 +553,34 @@ client.on('interactionCreate', async interaction => {
             
             let channelName = `ticket-${user.username}`;
             let embedTitle = 'TICKET';
-            if (category === 'ticket_support') { channelName = `support-ticket-${user.username}`; embedTitle = 'SUPPORT'; }
+            let permissions = [
+                {
+                    id: guild.roles.everyone.id,
+                    deny: [PermissionsBitField.Flags.ViewChannel],
+                },
+                {
+                    id: user.id,
+                    allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.ReadMessageHistory],
+                },
+                {
+                    id: OWNER_ROLE_ID,
+                    allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.ReadMessageHistory],
+                }
+            ];
+
+            let pingContent = `<@${user.id}> | <@&${OWNER_ROLE_ID}>`;
+            let embedDesc = `Welcome ${user}! The staff team (<@&${OWNER_ROLE_ID}>) will be with you shortly.\n\nPlease describe your issue or request in detail.`;
+
+            if (category === 'ticket_support') { 
+                channelName = `support-ticket-${user.username}`; 
+                embedTitle = 'SUPPORT'; 
+                permissions.push({
+                    id: '1510000102650151052', // Support Role
+                    allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.ReadMessageHistory],
+                });
+                pingContent = `<@${user.id}> | <@&${OWNER_ROLE_ID}> | <@&1510000102650151052>`;
+                embedDesc = `Welcome ${user}! The support team (<@&1510000102650151052>) and admins will be with you shortly.\n\nPlease describe your issue or request in detail.`;
+            }
             if (category === 'ticket_content') { channelName = `content-creation-${user.username}`; embedTitle = 'CONTENT CREATION'; }
             if (category === 'ticket_bug') { channelName = `bug-report-${user.username}`; embedTitle = 'BUG REPORT'; }
             if (category === 'ticket_giveaway') { channelName = `giveaway-prize-${user.username}`; embedTitle = 'GIVEAWAY PRIZE'; }
@@ -563,25 +590,12 @@ client.on('interactionCreate', async interaction => {
                     name: channelName,
                     type: ChannelType.GuildText,
                     parent: '1510245034077851808',
-                    permissionOverwrites: [
-                        {
-                            id: guild.roles.everyone.id,
-                            deny: [PermissionsBitField.Flags.ViewChannel],
-                        },
-                        {
-                            id: user.id,
-                            allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.ReadMessageHistory],
-                        },
-                        {
-                            id: OWNER_ROLE_ID,
-                            allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.ReadMessageHistory],
-                        }
-                    ],
+                    permissionOverwrites: permissions,
                 });
 
                 const embed = new EmbedBuilder()
                     .setTitle(`🎫 ${embedTitle} TICKET`)
-                    .setDescription(`Welcome ${user}! The staff team (<@&${OWNER_ROLE_ID}>) will be with you shortly.\n\nPlease describe your issue or request in detail.`)
+                    .setDescription(embedDesc)
                     .setColor(0xFECC23);
 
                 const row = new ActionRowBuilder()
@@ -593,7 +607,7 @@ client.on('interactionCreate', async interaction => {
                             .setEmoji('🔒')
                     );
 
-                await channel.send({ content: `<@${user.id}> | <@&${OWNER_ROLE_ID}>`, embeds: [embed], components: [row] });
+                await channel.send({ content: pingContent, embeds: [embed], components: [row] });
                 
                 await interaction.editReply({ content: `✅ Your ticket has been created: <#${channel.id}>` });
             } catch (err) {
