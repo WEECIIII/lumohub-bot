@@ -74,7 +74,7 @@ end
 FixRayfieldSliders()
 
 local function LoadLumoHub(activeKey, authGui)
-    if game.PlaceId == 13772394625 or workspace:FindFirstChild("Balls") then
+    if game.GameId == 4777817887 or game.PlaceId == 13772394625 or workspace:FindFirstChild("Balls") then
         local Window = Rayfield:CreateWindow({
             Name = "LumoHub Premium | Blade Ball ⚔️",
             Icon = 0,
