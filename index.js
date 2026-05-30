@@ -281,19 +281,35 @@ client.on('interactionCreate', async interaction => {
         userCooldown.set(user.id, now);
         saveData();
 
-        // Private reply
+        // Private reply in channel
         const privateEmbed = new EmbedBuilder()
             .setColor(0x7c3aed)
             .setTitle('🔑 LumoHub Key Generated')
-            .setDescription(`\`\`\`${key}\`\`\``)
+            .setDescription(`\`\`\`${key}\`\`\`\nI have also sent this key to your DMs so you don't lose it!`)
             .addFields(
                 { name: '⏳ Expires', value: '**1 hour**', inline: true },
                 { name: '📋 Usage', value: 'Paste this when the Roblox script asks', inline: true }
             )
-            .setFooter({ text: 'LumoHub • discord.gg/KeJDfYV4QR' })
+            .setFooter({ text: 'LumoHub • discord.gg/qkCRXBeEpB' })
             .setTimestamp();
 
         await interaction.reply({ embeds: [privateEmbed], ephemeral: true });
+
+        // DM the user the key
+        try {
+            const dmEmbed = new EmbedBuilder()
+                .setColor(0x7c3aed)
+                .setTitle('🔑 Your LumoHub Premium Key')
+                .setDescription(`Here is your key so you don't forget it!\n\`\`\`${key}\`\`\``)
+                .addFields(
+                    { name: '⏳ Expires In', value: '**1 hour**', inline: true }
+                )
+                .setFooter({ text: 'LumoHub Bot' })
+                .setTimestamp();
+            await user.send({ embeds: [dmEmbed] });
+        } catch (err) {
+            console.warn(`[LumoHub] Could not send DM to ${user.tag} (DMs might be closed).`);
+        }
 
         // Public announcement
         try {
