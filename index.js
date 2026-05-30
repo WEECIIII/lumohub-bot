@@ -681,7 +681,7 @@ client.on('messageCreate', async (message) => {
         try {
             await message.delete();
             try {
-                await message.author.send(`🚫 Please do not chat in the <#1509993539176759479> channel! This is just for generating keys.\nIf you want to chat, please go to <#1509993379285696673>.`);
+                await message.author.send(`🚫 Please do not chat in the <#1509993539176759479> channel!\n\nThis channel is strictly for generating keys. **To generate a free key, type the \`/generate\` command.**\n\nIf you want to chat or need support, please use the <#1509993379285696673> channel.`);
             } catch (dmErr) {
                 // Ignore if DMs are closed
             }
