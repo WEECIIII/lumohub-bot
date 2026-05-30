@@ -233,6 +233,7 @@ local function LoadLumoHub(activeKey, authGui)
 
             local GardenTab = Window:CreateTab("Grow a Garden 🌱", 4483362458)
             local MovementTab = Window:CreateTab("Movement", 4483362458)
+            local TeleportTab = Window:CreateTab("Teleports", 4483362458)
             local SettingsTab = Window:CreateTab("Settings", 4483362458)
 
             GardenTab:CreateSection("Economy & Selling")
@@ -290,7 +291,7 @@ local function LoadLumoHub(activeKey, authGui)
 
             local AutoPlant = false
             GardenTab:CreateToggle({
-                Name = "Auto Plant",
+                Name = "Auto Plant (Equip Seed First)",
                 CurrentValue = false,
                 Flag = "Garden_AutoPlant",
                 Callback = function(Value)
@@ -301,6 +302,16 @@ local function LoadLumoHub(activeKey, authGui)
                                 task.wait(1)
                                 pcall(function()
                                     game:GetService("ReplicatedStorage").GameEvents.Plant_RE:FireServer()
+                                    
+                                    for _, prompt in pairs(workspace:GetDescendants()) do
+                                        if prompt:IsA("ProximityPrompt") and prompt.ActionText:lower():match("plant") then
+                                            if prompt.Parent and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
+                                                if (prompt.Parent.Position - Player.Character.HumanoidRootPart.Position).Magnitude <= (prompt.MaxActivationDistance + 5) then
+                                                    fireproximityprompt(prompt, 1)
+                                                end
+                                            end
+                                        end
+                                    end
                                 end)
                             end
                         end)
@@ -414,6 +425,49 @@ local function LoadLumoHub(activeKey, authGui)
                     UpdatePlayerProperties()
                 end,
             })
+
+            TeleportTab:CreateSection("Shops & Locations")
+            
+            local function teleportToLocation(keyword)
+                pcall(function()
+                    local root = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
+                    if not root then return end
+                    
+                    for _, v in pairs(workspace:GetDescendants()) do
+                        if (v:IsA("Model") or v:IsA("BasePart")) and string.match(v.Name:lower(), keyword:lower()) then
+                            local targetCFrame = nil
+                            if v:IsA("Model") and v.PrimaryPart then
+                                targetCFrame = v.PrimaryPart.CFrame
+                            elseif v:IsA("BasePart") then
+                                targetCFrame = v.CFrame
+                            end
+                            
+                            if targetCFrame then
+                                root.CFrame = targetCFrame + Vector3.new(0, 5, 0)
+                                Rayfield:Notify({Title = "Teleport", Content = "Teleported to " .. v.Name, Duration = 2})
+                                return
+                            end
+                        end
+                    end
+                    
+                    for _, v in pairs(workspace:GetDescendants()) do
+                        if v:IsA("ProximityPrompt") and string.match(v.ActionText:lower(), keyword:lower()) then
+                            if v.Parent and v.Parent:IsA("BasePart") then
+                                root.CFrame = v.Parent.CFrame + Vector3.new(0, 5, 0)
+                                Rayfield:Notify({Title = "Teleport", Content = "Teleported to " .. v.ActionText, Duration = 2})
+                                return
+                            end
+                        end
+                    end
+                    
+                    Rayfield:Notify({Title = "Teleport", Content = "Could not find location: " .. keyword, Duration = 3})
+                end)
+            end
+
+            TeleportTab:CreateButton({ Name = "Teleport to Seeds", Callback = function() teleportToLocation("seed") end })
+            TeleportTab:CreateButton({ Name = "Teleport to Eggs", Callback = function() teleportToLocation("egg") end })
+            TeleportTab:CreateButton({ Name = "Teleport to Gears", Callback = function() teleportToLocation("gear") end })
+            TeleportTab:CreateButton({ Name = "Teleport to Sell Pet", Callback = function() teleportToLocation("sell pet") end })
 
             SettingsTab:CreateSection("Menu Settings")
 
