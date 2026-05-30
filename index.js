@@ -633,6 +633,24 @@ client.on('interactionCreate', async interaction => {
     }
 });
 
+client.on('messageCreate', async (message) => {
+    // Ignore bot messages
+    if (message.author.bot) return;
+
+    // Strict channel for generate-key
+    if (message.channel.id === '1509993539176759479') {
+        try {
+            await message.delete();
+            const warningMsg = await message.channel.send(`🚫 <@${message.author.id}>, please do not chat in this channel! This channel is only for commands.\nIf you want to chat, please go to <#1509993379285696673>.`);
+            setTimeout(() => {
+                warningMsg.delete().catch(() => {});
+            }, 5000);
+        } catch (err) {
+            console.error('[LumoHub] Failed to delete message in generate-key channel:', err);
+        }
+    }
+});
+
 registerCommands()
     .then(() => client.login(DISCORD_TOKEN))
     .catch(console.error);
