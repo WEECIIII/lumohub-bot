@@ -514,6 +514,8 @@ client.on('interactionCreate', async interaction => {
             console.error('[LumoHub] Post status failed:', err.message);
             return interaction.reply({ content: `❌ Failed to send status message: ${err.message}`, ephemeral: true });
         }
+    }
+
     // ── /setuptickets (Owner Only) ────────────────────────────
         if (commandName === 'setuptickets') {
             if (!hasOwnerRole(member)) {
