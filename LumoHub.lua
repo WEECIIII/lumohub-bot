@@ -289,65 +289,7 @@ local function LoadLumoHub(activeKey, authGui)
                 end,
             })
 
-            local AutoPlant = false
-            GardenTab:CreateToggle({
-                Name = "Auto Plant (Equip Seed First)",
-                CurrentValue = false,
-                Flag = "Garden_AutoPlant",
-                Callback = function(Value)
-                    AutoPlant = Value
-                    if Value then
-                        task.spawn(function()
-                            while AutoPlant do
-                                task.wait(0.5)
-                                pcall(function()
-                                    -- 1. Try activating the equipped tool (seed)
-                                    local tool = Player.Character and Player.Character:FindFirstChildOfClass("Tool")
-                                    if tool then
-                                        tool:Activate()
-                                    end
-                                    
-                                    -- 2. Look for nearby plots and interact with them
-                                    local root = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
-                                    if root then
-                                        for _, v in pairs(workspace:GetDescendants()) do
-                                            if v:IsA("BasePart") then
-                                                local name = v.Name:lower()
-                                                if name:match("plot") or name:match("dirt") or name:match("soil") or name:match("plant") then
-                                                    if (v.Position - root.Position).Magnitude <= 15 then
-                                                        -- Pass the plot part as an argument to the RemoteEvent
-                                                        game:GetService("ReplicatedStorage").GameEvents.Plant_RE:FireServer(v)
-                                                        
-                                                        -- Fire any ClickDetectors on the plot
-                                                        local cd = v:FindFirstChildOfClass("ClickDetector")
-                                                        if cd then
-                                                            fireclickdetector(cd)
-                                                        end
-                                                    end
-                                                end
-                                            end
-                                        end
-                                    end
-                                    
-                                    -- 3. Fire without arguments
-                                    game:GetService("ReplicatedStorage").GameEvents.Plant_RE:FireServer()
-                                    
-                                    -- 4. Fallback: Proximity Prompts
-                                    for _, prompt in pairs(workspace:GetDescendants()) do
-                                        if prompt:IsA("ProximityPrompt") and prompt.ActionText:lower():match("plant") then
-                                            if prompt.Parent and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
-                                                if (prompt.Parent.Position - Player.Character.HumanoidRootPart.Position).Magnitude <= (prompt.MaxActivationDistance + 5) then
-                                                    fireproximityprompt(prompt, 1)
-                                                end
-                                            end
-                                        end
-                                    end
-                                end)
-                            end
-                        end)
-                    end
-                end,
-            })
+
 
             local AutoWater = false
             GardenTab:CreateToggle({
