@@ -1093,6 +1093,7 @@ SettingsTab:CreateButton({
 
 Rayfield:LoadConfiguration()
     end
+end
 
 -- ──────────────────────────────────────────────────────────────
 -- KEY EXPIRATION CHECKER
