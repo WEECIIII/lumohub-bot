@@ -230,7 +230,7 @@ client.on('guildMemberAdd', async member => {
         if (channel) {
             const welcomeEmbed = new EmbedBuilder()
                 .setTitle('✨ Welcome to LumoHub! ✨')
-                .setDescription(`Welcome to the server, ${member}! We're thrilled to have you here.\n\n🔑 Use the **/generate** command to get your 1-hour premium key and unlock our Roblox exploit suite!\n\n💬 Be sure to check out the server channels and enjoy your stay!\n\n📖 **Remember to read <#1509986939372179639> for important information!**`)
+                .setDescription(`Welcome to the server, ${member}! We're thrilled to have you here.\n\n🔑 Use the **/generate** command to get your 1-hour premium key and unlock our Roblox exploit suite!\n\n💬 Be sure to check out the server channels and enjoy your stay!\n\n📖 **Remember to read <#1510024611029581925> for important information!**`)
                 .setColor(0xFECC23) // LumoHub Golden Hex
                 .setThumbnail(member.user.displayAvatarURL({ forceStatic: true, size: 256 }))
                 .setFooter({ text: 'LumoHub Bot • Premium Exploiting' })
@@ -462,7 +462,7 @@ client.on('interactionCreate', async interaction => {
             if (channel) {
                 const welcomeEmbed = new EmbedBuilder()
                     .setTitle('✨ Welcome to LumoHub! ✨')
-                    .setDescription(`Welcome to the server, ${interaction.member}! We're thrilled to have you here.\n\n🔑 Use the **/generate** command to get your 1-hour premium key and unlock our Roblox exploit suite!\n\n💬 Be sure to check out the server channels and enjoy your stay!\n\n📖 **Remember to read <#1509986939372179639> for important information!**`)
+                    .setDescription(`Welcome to the server, ${interaction.member}! We're thrilled to have you here.\n\n🔑 Use the **/generate** command to get your 1-hour premium key and unlock our Roblox exploit suite!\n\n💬 Be sure to check out the server channels and enjoy your stay!\n\n📖 **Remember to read <#1510024611029581925> for important information!**`)
                     .setColor(0xFECC23) // LumoHub Golden Hex
                     .setThumbnail(interaction.user.displayAvatarURL({ forceStatic: true, size: 256 }))
                     .setFooter({ text: 'LumoHub Bot • Premium Exploiting' })
