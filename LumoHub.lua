@@ -42,12 +42,7 @@ local function FixRayfieldSliders()
                 local rayfield = coreGui:FindFirstChild("Rayfield")
                 if rayfield then
                     for _, v in ipairs(rayfield:GetDescendants()) do
-                        -- Kill the giant annoying Rayfield splash text popup completely
-                        if v.Name == "LoadingFrame" then
-                            v.Visible = false
-                            v:Destroy()
-                        end
-                        
+                        -- Fix sliders (LoadingFrame destruction removed to prevent UI crash)
                         -- Find sliders by their structure (since Rayfield renames them to the setting name)
                         if v:IsA("Frame") then
                             local main = v:FindFirstChild("Main")
