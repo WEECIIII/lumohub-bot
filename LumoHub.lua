@@ -478,6 +478,25 @@ local function LoadLumoHub(activeKey, authGui)
                 end,
             })
 
+            SettingsTab:CreateSection("Developer Tools")
+
+            SettingsTab:CreateButton({
+                Name = "Copy Current Coordinates",
+                Callback = function()
+                    pcall(function()
+                        local root = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
+                        if root then
+                            local pos = root.Position
+                            local coordString = string.format("Vector3.new(%.2f, %.2f, %.2f)", pos.X, pos.Y, pos.Z)
+                            setclipboard(coordString)
+                            Rayfield:Notify({Title = "Coordinates Copied", Content = coordString, Duration = 5})
+                        else
+                            Rayfield:Notify({Title = "Error", Content = "Could not find your character!", Duration = 3})
+                        end
+                    end)
+                end,
+            })
+
             Rayfield:LoadConfiguration()
             
         else
