@@ -458,46 +458,21 @@ local function LoadLumoHub(activeKey, authGui)
 
             TeleportTab:CreateSection("Shops & Locations")
             
-            local function teleportToLocation(keyword)
+            local function tp(pos)
                 pcall(function()
                     local root = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
-                    if not root then return end
-                    
-                    for _, v in pairs(workspace:GetDescendants()) do
-                        if (v:IsA("Model") or v:IsA("BasePart")) and string.match(v.Name:lower(), keyword:lower()) then
-                            local targetCFrame = nil
-                            if v:IsA("Model") and v.PrimaryPart then
-                                targetCFrame = v.PrimaryPart.CFrame
-                            elseif v:IsA("BasePart") then
-                                targetCFrame = v.CFrame
-                            end
-                            
-                            if targetCFrame then
-                                root.CFrame = targetCFrame + Vector3.new(0, 5, 0)
-                                Rayfield:Notify({Title = "Teleport", Content = "Teleported to " .. v.Name, Duration = 2})
-                                return
-                            end
-                        end
+                    if root then
+                        root.CFrame = CFrame.new(pos) + Vector3.new(0, 3, 0)
+                        Rayfield:Notify({Title = "Teleport", Content = "Teleported successfully!", Duration = 2})
                     end
-                    
-                    for _, v in pairs(workspace:GetDescendants()) do
-                        if v:IsA("ProximityPrompt") and string.match(v.ActionText:lower(), keyword:lower()) then
-                            if v.Parent and v.Parent:IsA("BasePart") then
-                                root.CFrame = v.Parent.CFrame + Vector3.new(0, 5, 0)
-                                Rayfield:Notify({Title = "Teleport", Content = "Teleported to " .. v.ActionText, Duration = 2})
-                                return
-                            end
-                        end
-                    end
-                    
-                    Rayfield:Notify({Title = "Teleport", Content = "Could not find location: " .. keyword, Duration = 3})
                 end)
             end
 
-            TeleportTab:CreateButton({ Name = "Teleport to Seeds", Callback = function() teleportToLocation("seed") end })
-            TeleportTab:CreateButton({ Name = "Teleport to Eggs", Callback = function() teleportToLocation("egg") end })
-            TeleportTab:CreateButton({ Name = "Teleport to Gears", Callback = function() teleportToLocation("gear") end })
-            TeleportTab:CreateButton({ Name = "Teleport to Sell Pet", Callback = function() teleportToLocation("sell pet") end })
+            TeleportTab:CreateButton({ Name = "Seeds", Callback = function() tp(Vector3.new(36.59, 3.00, -27.00)) end })
+            TeleportTab:CreateButton({ Name = "Sell Pets", Callback = function() tp(Vector3.new(36.59, 3.00, 0.43)) end })
+            TeleportTab:CreateButton({ Name = "Pet Eggs", Callback = function() tp(Vector3.new(-235.34, 3.00, 8.37)) end })
+            TeleportTab:CreateButton({ Name = "Gears", Callback = function() tp(Vector3.new(-235.41, 3.00, -4.95)) end })
+            TeleportTab:CreateButton({ Name = "Cosmetics / Crafting", Callback = function() tp(Vector3.new(-236.01, 3.00, -15.86)) end })
 
             SettingsTab:CreateSection("Menu Settings")
 
@@ -508,24 +483,7 @@ local function LoadLumoHub(activeKey, authGui)
                 end,
             })
 
-            SettingsTab:CreateSection("Developer Tools")
 
-            SettingsTab:CreateButton({
-                Name = "Copy Current Coordinates",
-                Callback = function()
-                    pcall(function()
-                        local root = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
-                        if root then
-                            local pos = root.Position
-                            local coordString = string.format("Vector3.new(%.2f, %.2f, %.2f)", pos.X, pos.Y, pos.Z)
-                            setclipboard(coordString)
-                            Rayfield:Notify({Title = "Coordinates Copied", Content = coordString, Duration = 5})
-                        else
-                            Rayfield:Notify({Title = "Error", Content = "Could not find your character!", Duration = 3})
-                        end
-                    end)
-                end,
-            })
 
             Rayfield:LoadConfiguration()
             
