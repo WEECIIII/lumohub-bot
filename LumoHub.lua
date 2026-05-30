@@ -119,19 +119,21 @@ local function LoadLumoHub(activeKey, authGui)
             VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 0)
         end
 
-        Balls.ChildAdded:Connect(function(Ball)
+        local ParryDistance = 10 -- default distance multiplier
+
+        local function TrackBall(Ball)
             if not VerifyBall(Ball) then return end
             
             local OldPosition = Ball.Position
             local OldTick = tick()
 
             Ball:GetPropertyChangedSignal("Position"):Connect(function()
-                if not AutoParryEnabled and not SpamParryEnabled then return end
-                if IsTarget() and AutoParryEnabled then
+                if not AutoParryEnabled then return end
+                if IsTarget() then
                     local Distance = (Ball.Position - workspace.CurrentCamera.Focus.Position).Magnitude
                     local Velocity = (OldPosition - Ball.Position).Magnitude
 
-                    if Velocity > 0 and (Distance / Velocity) <= 10 then
+                    if Velocity > 0 and (Distance / Velocity) <= ParryDistance then
                         Parry()
                     end
                 end
@@ -141,7 +143,12 @@ local function LoadLumoHub(activeKey, authGui)
                     OldPosition = Ball.Position
                 end
             end)
-        end)
+        end
+
+        Balls.ChildAdded:Connect(TrackBall)
+        for _, b in ipairs(Balls:GetChildren()) do
+            TrackBall(b)
+        end
 
         CombatTab:CreateToggle({
             Name = "Auto Parry",
@@ -149,6 +156,18 @@ local function LoadLumoHub(activeKey, authGui)
             Flag = "AutoParry",
             Callback = function(Value)
                 AutoParryEnabled = Value
+            end,
+        })
+
+        CombatTab:CreateSlider({
+            Name = "Parry Timing (Distance)",
+            Range = {5, 25},
+            Increment = 0.5,
+            Suffix = "Frames",
+            CurrentValue = 10,
+            Flag = "ParryDistance",
+            Callback = function(Value)
+                ParryDistance = Value
             end,
         })
 
@@ -160,9 +179,13 @@ local function LoadLumoHub(activeKey, authGui)
             Callback = function(Value)
                 SpamParryEnabled = Value
                 if Value then
+                    local lastSpam = 0
                     SpamConnection = RunService.Heartbeat:Connect(function()
                         if UserInputService:IsKeyDown(Enum.KeyCode.C) then
-                            Parry()
+                            if tick() - lastSpam >= 0.08 then -- ~12 clicks per second max (Safe for Anti-Cheat)
+                                lastSpam = tick()
+                                Parry()
+                            end
                         end
                     end)
                 else
