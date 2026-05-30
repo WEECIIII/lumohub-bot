@@ -168,6 +168,7 @@ const commands = [
                 .setDescription('The duration of the key')
                 .setRequired(true)
                 .addChoices(
+                    { name: '1 Minute', value: '1min' },
                     { name: '1 Hour', value: '1h' },
                     { name: '24 Hours', value: '24h' },
                     { name: '2 Weeks', value: '2w' },
@@ -390,6 +391,10 @@ client.on('interactionCreate', async interaction => {
         let durationLabel = '';
 
         switch (durationChoice) {
+            case '1min':
+                durationMs = 60 * 1000;
+                durationLabel = '1 Minute';
+                break;
             case '1h':
                 durationMs = 60 * 60 * 1000;
                 durationLabel = '1 Hour';
@@ -417,6 +422,10 @@ client.on('interactionCreate', async interaction => {
             case 'lifetime':
                 durationMs = 100 * 365 * 24 * 60 * 60 * 1000; // 100 years
                 durationLabel = 'Lifetime';
+                break;
+            default:
+                durationMs = 60 * 1000; // Default to 1 minute
+                durationLabel = durationChoice || 'Unknown (1m)';
                 break;
         }
 
@@ -508,3 +517,7 @@ client.on('interactionCreate', async interaction => {
 registerCommands()
     .then(() => client.login(DISCORD_TOKEN))
     .catch(console.error);
+
+process.on('unhandledRejection', error => {
+    console.error('Unhandled promise rejection:', error);
+});
