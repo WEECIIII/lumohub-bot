@@ -578,7 +578,7 @@ client.on('interactionCreate', async interaction => {
                     id: '1510000102650151052', // Support Role
                     allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.ReadMessageHistory],
                 });
-                pingContent = `<@${user.id}> | <@&${OWNER_ROLE_ID}> | <@&1510000102650151052>`;
+                pingContent = `<@${user.id}> | <@&1510000102650151052>`;
                 embedDesc = `Welcome ${user}! The support team (<@&1510000102650151052>) and admins will be with you shortly.\n\nPlease describe your issue or request in detail.`;
             }
             if (category === 'ticket_content') { channelName = `content-creation-${user.username}`; embedTitle = 'CONTENT CREATION'; }
