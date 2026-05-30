@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+const { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle, ChannelType, PermissionsBitField } = require('discord.js');
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
@@ -185,6 +185,10 @@ const commands = [
     new SlashCommandBuilder()
         .setName('poststatus')
         .setDescription('Post the LumoHub game execution status to the status channel (Admin Only)')
+        .toJSON(),
+    new SlashCommandBuilder()
+        .setName('setuptickets')
+        .setDescription('Setup the ticket system panel (Admin Only)')
         .toJSON()
 ];
 
@@ -247,13 +251,12 @@ client.on('guildMemberAdd', async member => {
 });
 
 client.on('interactionCreate', async interaction => {
-    if (!interaction.isChatInputCommand()) return;
+    if (interaction.isChatInputCommand()) {
+        const { commandName, user, guildId, member } = interaction;
 
-    const { commandName, user, guildId, member } = interaction;
-
-    if (guildId !== GUILD_ID) {
-        return interaction.reply({ content: '❌ Use this in the **LumoHub** server!', ephemeral: true });
-    }
+        if (guildId !== GUILD_ID) {
+            return interaction.reply({ content: '❌ Use this in the **LumoHub** server!', ephemeral: true });
+        }
 
     // ── /generate (1-hour key, 1-hour cooldown) ────────────────
     if (commandName === 'generate') {
@@ -510,6 +513,99 @@ client.on('interactionCreate', async interaction => {
         } catch (err) {
             console.error('[LumoHub] Post status failed:', err.message);
             return interaction.reply({ content: `❌ Failed to send status message: ${err.message}`, ephemeral: true });
+        }
+    // ── /setuptickets (Owner Only) ────────────────────────────
+        if (commandName === 'setuptickets') {
+            if (!hasOwnerRole(member)) {
+                return interaction.reply({ content: '❌ You do not have permission to use this command!', ephemeral: true });
+            }
+            
+            const embed = new EmbedBuilder()
+                .setTitle('🎫 LumoHub Ticket Support')
+                .setDescription('Please select the category for your ticket from the dropdown below to contact the team.')
+                .setColor(0xFECC23);
+
+            const row = new ActionRowBuilder()
+                .addComponents(
+                    new StringSelectMenuBuilder()
+                        .setCustomId('ticket_category_select')
+                        .setPlaceholder('Select a ticket category...')
+                        .addOptions([
+                            { label: 'Support', description: 'General support for LumoHub scripts', value: 'ticket_support', emoji: '🔧' },
+                            { label: 'Content Creation', description: 'Apply to be a content creator', value: 'ticket_content', emoji: '🎥' },
+                            { label: 'Bug Report', description: 'Report a bug or exploit issue', value: 'ticket_bug', emoji: '🐛' },
+                            { label: 'Redeem Giveaway Prize', description: 'Claim a prize you won', value: 'ticket_giveaway', emoji: '🎁' }
+                        ])
+                );
+
+            await interaction.channel.send({ embeds: [embed], components: [row] });
+            return interaction.reply({ content: '✅ Ticket panel setup successfully!', ephemeral: true });
+        }
+    } else if (interaction.isStringSelectMenu()) {
+        if (interaction.customId === 'ticket_category_select') {
+            await interaction.deferReply({ ephemeral: true });
+            
+            const category = interaction.values[0];
+            const guild = interaction.guild;
+            const user = interaction.user;
+            
+            let categoryName = 'ticket';
+            if (category === 'ticket_support') categoryName = 'support';
+            if (category === 'ticket_content') categoryName = 'content';
+            if (category === 'ticket_bug') categoryName = 'bug';
+            if (category === 'ticket_giveaway') categoryName = 'giveaway';
+            
+            try {
+                const channel = await guild.channels.create({
+                    name: `${categoryName}-${user.username}`,
+                    type: ChannelType.GuildText,
+                    permissionOverwrites: [
+                        {
+                            id: guild.roles.everyone.id,
+                            deny: [PermissionsBitField.Flags.ViewChannel],
+                        },
+                        {
+                            id: user.id,
+                            allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.ReadMessageHistory],
+                        },
+                        {
+                            id: OWNER_ROLE_ID,
+                            allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.ReadMessageHistory],
+                        }
+                    ],
+                });
+
+                const embed = new EmbedBuilder()
+                    .setTitle(`🎫 ${categoryName.toUpperCase()} TICKET`)
+                    .setDescription(`Welcome ${user}! The staff team (<@&${OWNER_ROLE_ID}>) will be with you shortly.\n\nPlease describe your issue or request in detail.`)
+                    .setColor(0xFECC23);
+
+                const row = new ActionRowBuilder()
+                    .addComponents(
+                        new ButtonBuilder()
+                            .setCustomId('close_ticket')
+                            .setLabel('Close Ticket')
+                            .setStyle(ButtonStyle.Danger)
+                            .setEmoji('🔒')
+                    );
+
+                await channel.send({ content: `<@${user.id}> | <@&${OWNER_ROLE_ID}>`, embeds: [embed], components: [row] });
+                
+                await interaction.editReply({ content: `✅ Your ticket has been created: <#${channel.id}>` });
+            } catch (err) {
+                console.error('[LumoHub] Ticket creation failed:', err);
+                await interaction.editReply({ content: '❌ Failed to create ticket channel. Please contact an admin.' });
+            }
+        }
+    } else if (interaction.isButton()) {
+        if (interaction.customId === 'close_ticket') {
+            if (!hasOwnerRole(interaction.member)) {
+                return interaction.reply({ content: '❌ Only staff can close tickets.', ephemeral: true });
+            }
+            await interaction.reply({ content: '🔒 Ticket will be closed and deleted in 5 seconds...' });
+            setTimeout(() => {
+                interaction.channel.delete().catch(err => console.error('Failed to delete ticket:', err));
+            }, 5000);
         }
     }
 });
