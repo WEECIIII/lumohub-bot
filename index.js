@@ -617,7 +617,11 @@ client.on('interactionCreate', async interaction => {
         }
     } else if (interaction.isButton()) {
         if (interaction.customId === 'close_ticket') {
-            if (!hasOwnerRole(interaction.member)) {
+            const hasSupportRole = Array.isArray(interaction.member.roles) 
+                ? interaction.member.roles.includes('1510000102650151052') 
+                : interaction.member.roles.cache.has('1510000102650151052');
+                
+            if (!hasOwnerRole(interaction.member) && !hasSupportRole) {
                 return interaction.reply({ content: '❌ Only staff can close tickets.', ephemeral: true });
             }
             await interaction.reply({ content: '🔒 Ticket will be closed and deleted in 5 seconds...' });
