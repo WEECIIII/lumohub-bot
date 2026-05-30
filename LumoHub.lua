@@ -206,13 +206,171 @@ local function LoadLumoHub(activeKey, authGui)
 
         Rayfield:LoadConfiguration()
     else
-        local GameName = game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name
-        local Window = Rayfield:CreateWindow({
-            Name = "LumoHub Premium | " .. GameName,
-        Icon = 0, -- Removed the original icon so it's perfectly clean
-        LoadingTitle = "LumoHub Premium",
-        LoadingSubtitle = "Injecting Modules...",
-        Theme = "Default", -- Switched to Default for sleek black/white professional sliders
+        local success, info = pcall(function() return game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId) end)
+        local GameName = (success and info) and info.Name or "Unknown Game"
+
+        if string.find(string.lower(GameName), "garden") then
+            local Window = Rayfield:CreateWindow({
+                Name = "LumoHub Premium | " .. GameName,
+                Icon = 0,
+                LoadingTitle = "LumoHub Premium",
+                LoadingSubtitle = "Injecting Modules...",
+                Theme = "Default",
+                DisableRayfieldPrompts = true,
+                DisableBuildWarnings = true,
+                ConfigurationSaving = {
+                    Enabled = false,
+                    FolderName = "LumoHubConfig",
+                    FileName = "Config"
+                },
+                Discord = {
+                    Enabled = true,
+                    Invite = "qkCRXBeEpB",
+                    RememberJoins = true
+                },
+                KeySystem = false
+            })
+
+            local GardenTab = Window:CreateTab("Grow a Garden 🌱", 4483362458)
+            local SettingsTab = Window:CreateTab("Settings", 4483362458)
+
+            GardenTab:CreateSection("Pets & Fruits")
+
+            GardenTab:CreateButton({
+                Name = "Duplicate All Pets (Bypass)",
+                Callback = function()
+                    pcall(function()
+                        for _, item in pairs(game:GetService("ReplicatedStorage"):GetDescendants()) do
+                            if item:IsA("RemoteEvent") and string.match(item.Name:lower(), "pet") then
+                                item:FireServer("Duplicate")
+                                item:FireServer("Clone")
+                            end
+                        end
+                    end)
+                    Rayfield:Notify({Title = "Grow a Garden", Content = "Sent duplication requests for all pets!", Duration = 3})
+                end,
+            })
+
+            GardenTab:CreateButton({
+                Name = "Duplicate All Fruits (Bypass)",
+                Callback = function()
+                    pcall(function()
+                        for _, item in pairs(game:GetService("ReplicatedStorage"):GetDescendants()) do
+                            if item:IsA("RemoteEvent") and string.match(item.Name:lower(), "fruit") then
+                                item:FireServer("Duplicate")
+                                item:FireServer("Clone")
+                            end
+                        end
+                    end)
+                    Rayfield:Notify({Title = "Grow a Garden", Content = "Sent duplication requests for all fruits!", Duration = 3})
+                end,
+            })
+
+            GardenTab:CreateSection("Automation")
+
+            local AutoFarmGarden = false
+            GardenTab:CreateToggle({
+                Name = "Auto Farm (Harvest & Replant)",
+                CurrentValue = false,
+                Flag = "Garden_AutoFarm",
+                Callback = function(Value)
+                    AutoFarmGarden = Value
+                    if Value then
+                        task.spawn(function()
+                            while AutoFarmGarden do
+                                task.wait(0.5)
+                                pcall(function()
+                                    for _, prompt in pairs(workspace:GetDescendants()) do
+                                        if prompt:IsA("ProximityPrompt") then
+                                            local action = prompt.ActionText:lower()
+                                            if string.match(action, "harvest") or string.match(action, "plant") or string.match(action, "collect") then
+                                                if prompt.Parent and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
+                                                    if (prompt.Parent.Position - Player.Character.HumanoidRootPart.Position).Magnitude <= prompt.MaxActivationDistance then
+                                                        fireproximityprompt(prompt, 1)
+                                                    end
+                                                end
+                                            end
+                                        end
+                                    end
+                                    for _, remote in pairs(game:GetService("ReplicatedStorage"):GetDescendants()) do
+                                        if remote:IsA("RemoteEvent") then
+                                            local rname = remote.Name:lower()
+                                            if string.match(rname, "harvest") or string.match(rname, "plant") then
+                                                remote:FireServer()
+                                            end
+                                        end
+                                    end
+                                end)
+                            end
+                        end)
+                    end
+                end,
+            })
+
+            local AutoWaterGarden = false
+            GardenTab:CreateToggle({
+                Name = "Auto Water & Fertilize",
+                CurrentValue = false,
+                Flag = "Garden_AutoWater",
+                Callback = function(Value)
+                    AutoWaterGarden = Value
+                    if Value then
+                        task.spawn(function()
+                            while AutoWaterGarden do
+                                task.wait(1.5)
+                                pcall(function()
+                                    for _, prompt in pairs(workspace:GetDescendants()) do
+                                        if prompt:IsA("ProximityPrompt") then
+                                            local action = prompt.ActionText:lower()
+                                            if string.match(action, "water") or string.match(action, "fertilize") then
+                                                if prompt.Parent and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
+                                                    if (prompt.Parent.Position - Player.Character.HumanoidRootPart.Position).Magnitude <= prompt.MaxActivationDistance then
+                                                        fireproximityprompt(prompt, 1)
+                                                    end
+                                                end
+                                            end
+                                        end
+                                    end
+                                end)
+                            end
+                        end)
+                    end
+                end,
+            })
+
+            GardenTab:CreateSection("Limits & Inventory")
+
+            GardenTab:CreateButton({
+                Name = "Bypass Limits & Inventory Overflow",
+                Callback = function()
+                    pcall(function()
+                        for _, val in pairs(Player:GetDescendants()) do
+                            if (val:IsA("IntValue") or val:IsA("NumberValue")) and string.match(val.Name:lower(), "max") then
+                                val.Value = 999999999
+                            end
+                        end
+                    end)
+                    Rayfield:Notify({Title = "Grow a Garden", Content = "Limits bypassed! (Note: Server-sided limits cannot be bypassed without exploiting dupes)", Duration = 4})
+                end,
+            })
+
+            SettingsTab:CreateButton({
+                Name = "Unload Menu",
+                Callback = function()
+                    pcall(function() Rayfield:Destroy() end)
+                end,
+            })
+
+            Rayfield:LoadConfiguration()
+            
+        else
+            -- Universal / Streetz War 2
+            local Window = Rayfield:CreateWindow({
+                Name = "LumoHub Premium | " .. GameName,
+            Icon = 0, -- Removed the original icon so it's perfectly clean
+            LoadingTitle = "LumoHub Premium",
+            LoadingSubtitle = "Injecting Modules...",
+            Theme = "Default", -- Switched to Default for sleek black/white professional sliders
 
         DisableRayfieldPrompts = true,
         DisableBuildWarnings = true,
@@ -238,7 +396,6 @@ local PlayerTab = Window:CreateTab("Player", 4483362458)
 local GunTab = Window:CreateTab("Gun Spawn", 4483345998)
 local MovementTab = Window:CreateTab("Movement", 4483362458)
 local TeleportTab = Window:CreateTab("Teleports", 4483345998)
-local GardenTab = Window:CreateTab("Grow a Garden 🌱", 4483362458)
 local SettingsTab = Window:CreateTab("Settings", 4483362458)
 
 -- ──────────────────────────────────────────────────────────────
@@ -889,133 +1046,6 @@ for _, location in ipairs(TeleportLocations) do
         end,
     })
 end
-
--- ──────────────────────────────────────────────────────────────
--- GROW A GARDEN 🌱
--- ──────────────────────────────────────────────────────────────
-GardenTab:CreateSection("Pets & Fruits")
-
-GardenTab:CreateButton({
-    Name = "Duplicate All Pets (Bypass)",
-    Callback = function()
-        pcall(function()
-            for _, item in pairs(game:GetService("ReplicatedStorage"):GetDescendants()) do
-                if item:IsA("RemoteEvent") and string.match(item.Name:lower(), "pet") then
-                    item:FireServer("Duplicate")
-                    item:FireServer("Clone")
-                end
-            end
-        end)
-        Rayfield:Notify({Title = "Grow a Garden", Content = "Sent duplication requests for all pets!", Duration = 3})
-    end,
-})
-
-GardenTab:CreateButton({
-    Name = "Duplicate All Fruits (Bypass)",
-    Callback = function()
-        pcall(function()
-            for _, item in pairs(game:GetService("ReplicatedStorage"):GetDescendants()) do
-                if item:IsA("RemoteEvent") and string.match(item.Name:lower(), "fruit") then
-                    item:FireServer("Duplicate")
-                    item:FireServer("Clone")
-                end
-            end
-        end)
-        Rayfield:Notify({Title = "Grow a Garden", Content = "Sent duplication requests for all fruits!", Duration = 3})
-    end,
-})
-
-GardenTab:CreateSection("Automation")
-
-local AutoFarmGarden = false
-GardenTab:CreateToggle({
-    Name = "Auto Farm (Harvest & Replant)",
-    CurrentValue = false,
-    Flag = "Garden_AutoFarm",
-    Callback = function(Value)
-        AutoFarmGarden = Value
-        if Value then
-            task.spawn(function()
-                while AutoFarmGarden do
-                    task.wait(0.5)
-                    pcall(function()
-                        -- Universal Proximity Prompt Auto-Harvest
-                        for _, prompt in pairs(workspace:GetDescendants()) do
-                            if prompt:IsA("ProximityPrompt") then
-                                local action = prompt.ActionText:lower()
-                                if string.match(action, "harvest") or string.match(action, "plant") or string.match(action, "collect") then
-                                    if prompt.Parent and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
-                                        if (prompt.Parent.Position - Player.Character.HumanoidRootPart.Position).Magnitude <= prompt.MaxActivationDistance then
-                                            fireproximityprompt(prompt, 1)
-                                        end
-                                    end
-                                end
-                            end
-                        end
-                        
-                        -- Universal Remote Firing
-                        for _, remote in pairs(game:GetService("ReplicatedStorage"):GetDescendants()) do
-                            if remote:IsA("RemoteEvent") then
-                                local rname = remote.Name:lower()
-                                if string.match(rname, "harvest") or string.match(rname, "plant") then
-                                    remote:FireServer()
-                                end
-                            end
-                        end
-                    end)
-                end
-            end)
-        end
-    end,
-})
-
-local AutoWaterGarden = false
-GardenTab:CreateToggle({
-    Name = "Auto Water & Fertilize",
-    CurrentValue = false,
-    Flag = "Garden_AutoWater",
-    Callback = function(Value)
-        AutoWaterGarden = Value
-        if Value then
-            task.spawn(function()
-                while AutoWaterGarden do
-                    task.wait(1.5)
-                    pcall(function()
-                        for _, prompt in pairs(workspace:GetDescendants()) do
-                            if prompt:IsA("ProximityPrompt") then
-                                local action = prompt.ActionText:lower()
-                                if string.match(action, "water") or string.match(action, "fertilize") then
-                                    if prompt.Parent and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
-                                        if (prompt.Parent.Position - Player.Character.HumanoidRootPart.Position).Magnitude <= prompt.MaxActivationDistance then
-                                            fireproximityprompt(prompt, 1)
-                                        end
-                                    end
-                                end
-                            end
-                        end
-                    end)
-                end
-            end)
-        end
-    end,
-})
-
-GardenTab:CreateSection("Limits & Inventory")
-
-GardenTab:CreateButton({
-    Name = "Bypass Limits & Inventory Overflow",
-    Callback = function()
-        pcall(function()
-            -- Override local stat constraints
-            for _, val in pairs(Player:GetDescendants()) do
-                if (val:IsA("IntValue") or val:IsA("NumberValue")) and string.match(val.Name:lower(), "max") then
-                    val.Value = 999999999
-                end
-            end
-        end)
-        Rayfield:Notify({Title = "Grow a Garden", Content = "Limits bypassed! (Note: Server-sided limits cannot be bypassed without exploiting dupes)", Duration = 4})
-    end,
-})
 
 -- ──────────────────────────────────────────────────────────────
 -- SETTINGS
