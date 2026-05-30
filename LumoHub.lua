@@ -469,7 +469,7 @@ local function LoadLumoHub(activeKey, authGui)
             end
 
             TeleportTab:CreateButton({ Name = "Seeds", Callback = function() tp(Vector3.new(36.59, 3.00, -27.00)) end })
-            TeleportTab:CreateButton({ Name = "Sell Pets", Callback = function() tp(Vector3.new(36.59, 3.00, 0.43)) end })
+            TeleportTab:CreateButton({ Name = "Sell Stuff", Callback = function() tp(Vector3.new(36.59, 3.00, 0.43)) end })
             TeleportTab:CreateButton({ Name = "Pet Eggs", Callback = function() tp(Vector3.new(-235.34, 3.00, 8.37)) end })
             TeleportTab:CreateButton({ Name = "Gears", Callback = function() tp(Vector3.new(-235.41, 3.00, -4.95)) end })
             TeleportTab:CreateButton({ Name = "Cosmetics / Crafting", Callback = function() tp(Vector3.new(-236.01, 3.00, -15.86)) end })
