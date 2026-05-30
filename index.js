@@ -659,10 +659,11 @@ client.on('messageCreate', async (message) => {
     if (message.channel.id === '1509993539176759479') {
         try {
             await message.delete();
-            const warningMsg = await message.channel.send(`🚫 <@${message.author.id}>, please do not chat in this channel! This channel is only for commands.\nIf you want to chat, please go to <#1509993379285696673>.`);
-            setTimeout(() => {
-                warningMsg.delete().catch(() => {});
-            }, 5000);
+            try {
+                await message.author.send(`🚫 Please do not chat in the <#1509993539176759479> channel! This is just for generating keys.\nIf you want to chat, please go to <#1509993379285696673>.`);
+            } catch (dmErr) {
+                // Ignore if DMs are closed
+            }
         } catch (err) {
             console.error('[LumoHub] Failed to delete message in generate-key channel:', err);
         }
