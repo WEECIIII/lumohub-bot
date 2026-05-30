@@ -232,6 +232,7 @@ local function LoadLumoHub(activeKey, authGui)
             })
 
             local GardenTab = Window:CreateTab("Grow a Garden 🌱", 4483362458)
+            local MovementTab = Window:CreateTab("Movement", 4483362458)
             local SettingsTab = Window:CreateTab("Settings", 4483362458)
 
             GardenTab:CreateSection("Economy & Selling")
@@ -369,6 +370,48 @@ local function LoadLumoHub(activeKey, authGui)
                         end
                     end)
                     Rayfield:Notify({Title = "Grow a Garden", Content = "Local Limits bypassed! (Server-sided limits cannot be bypassed)", Duration = 4})
+                end,
+            })
+            MovementTab:CreateSection("Speed & Jump")
+            
+            local walkSpeed = 16
+            local jumpPower = 50
+            local function UpdatePlayerProperties()
+                if Player.Character and Player.Character:FindFirstChildOfClass("Humanoid") then
+                    local humanoid = Player.Character:FindFirstChildOfClass("Humanoid")
+                    humanoid.WalkSpeed = walkSpeed
+                    humanoid.JumpPower = jumpPower
+                end
+            end
+            
+            Player.CharacterAdded:Connect(function()
+                task.wait(0.5)
+                UpdatePlayerProperties()
+            end)
+
+            MovementTab:CreateSlider({
+                Name = "Walk Speed",
+                Range = {16, 150},
+                Increment = 1,
+                Suffix = " WS",
+                CurrentValue = 16,
+                Flag = "Garden_WS",
+                Callback = function(Value)
+                    walkSpeed = Value
+                    UpdatePlayerProperties()
+                end,
+            })
+            
+            MovementTab:CreateSlider({
+                Name = "Jump Power",
+                Range = {50, 200},
+                Increment = 1,
+                Suffix = " JP",
+                CurrentValue = 50,
+                Flag = "Garden_JP",
+                Callback = function(Value)
+                    jumpPower = Value
+                    UpdatePlayerProperties()
                 end,
             })
 
