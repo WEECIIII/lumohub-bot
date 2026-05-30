@@ -499,6 +499,7 @@ client.on('interactionCreate', async interaction => {
                     .setColor(0xFECC23) // LumoHub gold color
                     .addFields(
                         { name: '🟢 Streetz War 2', value: '```Active & Working```', inline: false },
+                        { name: '🔴 Blade Ball', value: '```Under Development```', inline: false },
                         { name: '⏳ Future Projects', value: '*More games coming soon...*', inline: false }
                     )
                     .setThumbnail(interaction.guild.iconURL({ dynamic: true, size: 256 }) || null)
