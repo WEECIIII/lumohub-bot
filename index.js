@@ -3,12 +3,14 @@ const { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder, EmbedBuild
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const axios = require('axios');
 
 const {
     DISCORD_TOKEN,
     CLIENT_ID,
     GUILD_ID,
-    PORT = '3000'
+    PORT = '3000',
+    GITHUB_TOKEN
 } = process.env;
 
 const ANNOUNCE_CHANNEL_ID = '1509993539176759479';
@@ -18,9 +20,8 @@ const WELCOME_CHANNEL_ID = '1509986939372179639';
 const AUTO_ROLE_ID = '1510000443386892329';
 const COOLDOWN_MS = 60 * 60 * 1000; // 1 hour
 
-// ── Persistent File Paths ─────────────────────────────────────
-const KEYS_FILE = path.join(__dirname, 'keys.json');
-const COOLDOWNS_FILE = path.join(__dirname, 'cooldowns.json');
+// ── Persistent Cloud Database ─────────────────────────────────────
+const DB_GIST_ID = '04e038c9d00af7930b2d34ffdc7d9ed9';
 
 // ── Key storage maps ──────────────────────────────────────────
 // validKeys: key => { expiresAt, generatedBy, duration }
@@ -50,42 +51,59 @@ function hasOwnerRole(member) {
     return roles.cache.has(OWNER_ROLE_ID);
 }
 
-// Load data from disk if it exists
-function loadData() {
+// Load data from Cloud Database
+async function loadData() {
+    if (!GITHUB_TOKEN) {
+        console.error('[LumoHub DB] ERROR: GITHUB_TOKEN is missing! DB will not save.');
+        return;
+    }
     try {
-        if (fs.existsSync(KEYS_FILE)) {
-            const data = JSON.parse(fs.readFileSync(KEYS_FILE, 'utf8'));
+        console.log('[LumoHub DB] Fetching database from cloud...');
+        const response = await axios.get(`https://api.github.com/gists/${DB_GIST_ID}`, {
+            headers: { Authorization: `token ${GITHUB_TOKEN}` }
+        });
+        const files = response.data.files;
+        
+        if (files['keys.json'] && files['keys.json'].content) {
+            const parsedKeys = JSON.parse(files['keys.json'].content);
             validKeys = new Map();
-            for (const [k, val] of Object.entries(data)) {
+            for (const [k, val] of Object.entries(parsedKeys)) {
                 if (typeof val === 'number') {
-                    // Upgrade old key format to new object format safely
                     validKeys.set(k, { expiresAt: val, generatedBy: 'unknown', duration: '1h' });
                 } else {
                     validKeys.set(k, val);
                 }
             }
-            console.log(`[LumoHub] Loaded ${validKeys.size} keys from disk.`);
+            console.log(`[LumoHub DB] Loaded ${validKeys.size} keys from cloud.`);
         }
-        if (fs.existsSync(COOLDOWNS_FILE)) {
-            const data = JSON.parse(fs.readFileSync(COOLDOWNS_FILE, 'utf8'));
-            userCooldown = new Map(Object.entries(data));
-            console.log(`[LumoHub] Loaded ${userCooldown.size} cooldowns from disk.`);
+        
+        if (files['cooldowns.json'] && files['cooldowns.json'].content) {
+            const parsedCD = JSON.parse(files['cooldowns.json'].content);
+            userCooldown = new Map(Object.entries(parsedCD));
+            console.log(`[LumoHub DB] Loaded ${userCooldown.size} cooldowns from cloud.`);
         }
     } catch (e) {
-        console.error('[LumoHub] Load data error:', e.message);
+        console.error('[LumoHub DB] Load data error:', e.message);
     }
 }
 
-// Save data to disk
-function saveData() {
+// Save data to Cloud Database
+async function saveData() {
+    if (!GITHUB_TOKEN) return;
     try {
         const keysObj = Object.fromEntries(validKeys);
-        fs.writeFileSync(KEYS_FILE, JSON.stringify(keysObj, null, 2));
-
-        const cooldownsObj = Object.fromEntries(userCooldown);
-        fs.writeFileSync(COOLDOWNS_FILE, JSON.stringify(cooldownsObj, null, 2));
+        const cdObj = Object.fromEntries(userCooldown);
+        
+        await axios.patch(`https://api.github.com/gists/${DB_GIST_ID}`, {
+            files: {
+                'keys.json': { content: JSON.stringify(keysObj, null, 2) },
+                'cooldowns.json': { content: JSON.stringify(cdObj, null, 2) }
+            }
+        }, {
+            headers: { Authorization: `token ${GITHUB_TOKEN}` }
+        });
     } catch (e) {
-        console.error('[LumoHub] Save data error:', e.message);
+        console.error('[LumoHub DB] Save data error:', e.message);
     }
 }
 
@@ -120,8 +138,12 @@ function pruneExpired() {
     if (changed) saveData();
 }
 
-// Load initial data
-loadData();
+// Load initial data from cloud, then start discord bot
+loadData().then(() => {
+    registerCommands()
+        .then(() => client.login(DISCORD_TOKEN))
+        .catch(console.error);
+});
 
 // ── HTTP server (Roblox reads /keys to validate) ──────────────
 const server = http.createServer((req, res) => {
@@ -691,9 +713,7 @@ client.on('messageCreate', async (message) => {
     }
 });
 
-registerCommands()
-    .then(() => client.login(DISCORD_TOKEN))
-    .catch(console.error);
+// (Bot is now started inside the loadData().then() block near line 124)
 
 process.on('unhandledRejection', error => {
     console.error('Unhandled promise rejection:', error);
