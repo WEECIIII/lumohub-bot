@@ -361,6 +361,31 @@ local function LoadLumoHub(activeKey, authGui)
                 end,
             })
 
+            SettingsTab:CreateButton({
+                Name = "Scan Game Structure (Copy to Clipboard)",
+                Callback = function()
+                    pcall(function()
+                        local dump = "-- [ LUMOHUB GAME SCANNER: " .. GameName .. " ] --\n\n"
+                        dump = dump .. "=== REMOTE EVENTS (ReplicatedStorage) ===\n"
+                        for _, v in pairs(game:GetService("ReplicatedStorage"):GetDescendants()) do
+                            if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
+                                dump = dump .. v.ClassName .. ": " .. v.Name .. " | Parent: " .. v.Parent.Name .. "\n"
+                            end
+                        end
+                        
+                        dump = dump .. "\n=== PROXIMITY PROMPTS (Workspace) ===\n"
+                        for _, v in pairs(workspace:GetDescendants()) do
+                            if v:IsA("ProximityPrompt") then
+                                dump = dump .. "Prompt: " .. v.ActionText .. " (" .. v.ObjectText .. ") | Parent: " .. v.Parent.Name .. "\n"
+                            end
+                        end
+                        
+                        setclipboard(dump)
+                        Rayfield:Notify({Title = "Scanner", Content = "Game data copied to clipboard! Paste it to the AI.", Duration = 5})
+                    end)
+                end,
+            })
+
             Rayfield:LoadConfiguration()
             
         else
