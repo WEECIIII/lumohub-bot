@@ -302,7 +302,7 @@ client.on('interactionCreate', async interaction => {
             const dmEmbed = new EmbedBuilder()
                 .setColor(0x7c3aed)
                 .setTitle('🔑 Your LumoHub Premium Key')
-                .setDescription(`Here is your key so you don't lose it!\n\`\`\`${key}\`\`\``)
+                .setDescription(`Here is your key so you don't lose it!\n\`\`\`${key}\`\`\`\n⏳ You can create a new key after 1 hour.\nℹ️ If you want to check how much time is left on your active key, use the **/keyinfo** command!`)
                 .addFields(
                     { name: '⏳ Expires In', value: '**1 hour**', inline: true }
                 )
