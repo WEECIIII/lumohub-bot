@@ -145,10 +145,44 @@ loadData().then(() => {
         .catch(console.error);
 });
 
-// ── HTTP server (Roblox reads /keys to validate) ──────────────
+// ── HTTP server (Roblox reads /keys or /verify to validate) ──────────────
 const server = http.createServer((req, res) => {
     pruneExpired();
-    if (req.url === '/keys' || req.url === '/') {
+    
+    // Parse URL and query params
+    const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+    
+    if (parsedUrl.pathname === '/verify') {
+        const key = parsedUrl.searchParams.get('key');
+        const hwid = parsedUrl.searchParams.get('hwid');
+        
+        res.writeHead(200, { 'Content-Type': 'text/plain' });
+        
+        if (!key || !hwid) {
+            res.end('INVALID');
+            return;
+        }
+        
+        const keyData = validKeys.get(key);
+        if (!keyData) {
+            res.end('INVALID');
+            return;
+        }
+        
+        if (!keyData.hwid) {
+            // First time use! Claim the key for this HWID
+            keyData.hwid = hwid;
+            validKeys.set(key, keyData);
+            saveData();
+            res.end('VALID');
+        } else if (keyData.hwid === hwid) {
+            // Key already claimed by this HWID
+            res.end('VALID');
+        } else {
+            // Key claimed by someone else
+            res.end('INVALID_HWID');
+        }
+    } else if (parsedUrl.pathname === '/keys' || parsedUrl.pathname === '/') {
         const body = validKeys.size > 0
             ? Array.from(validKeys.keys()).join('\n')
             : 'NO_VALID_KEYS';
@@ -217,6 +251,23 @@ const commands = [
     new SlashCommandBuilder()
         .setName('setuptickets')
         .setDescription('Setup the ticket system panel (Admin Only)')
+        .toJSON(),
+    new SlashCommandBuilder()
+        .setName('giveaway')
+        .setDescription('Host a giveaway (Admin Only)')
+        .addIntegerOption(option =>
+            option.setName('winners')
+                .setDescription('Number of winners')
+                .setRequired(true)
+                .setMinValue(1))
+        .addStringOption(option =>
+            option.setName('duration')
+                .setDescription('Duration (e.g., 1h, 2d, 30m)')
+                .setRequired(true))
+        .addStringOption(option =>
+            option.setName('prize')
+                .setDescription('The prize being given away')
+                .setRequired(true))
         .toJSON()
 ];
 
@@ -379,13 +430,24 @@ client.on('interactionCreate', async interaction => {
             .setTitle('⏳ Your Active Keys')
             .setFooter({ text: 'LumoHub • discord.gg/KeJDfYV4QR' });
 
-        myKeys.forEach((k, index) => {
+        const maxKeysToShow = 24;
+        const keysToShow = myKeys.slice(0, maxKeysToShow);
+        const extraKeys = myKeys.length - maxKeysToShow;
+
+        keysToShow.forEach((k, index) => {
             const remaining = k.expiresAt - now;
             embed.addFields({
                 name: `Key #${index + 1} (${k.duration})`,
                 value: `\`\`\`${k.key}\`\`\`\n**Expires in:** ${formatCountdown(remaining)}`
             });
         });
+
+        if (extraKeys > 0) {
+            embed.addFields({
+                name: `And ${extraKeys} more key(s)...`,
+                value: `You have too many keys to display them all here!`
+            });
+        }
 
         return interaction.reply({ embeds: [embed], ephemeral: true });
     }
@@ -560,8 +622,9 @@ client.on('interactionCreate', async interaction => {
                     .setColor(0xFECC23) // LumoHub gold color
                     .addFields(
                         { name: '🟢 Streetz War 2', value: '```Active & Working```', inline: false },
+                        { name: '🟡 Grow a Garden', value: '```Dropping VERY soon... 👀```', inline: false },
                         { name: '🔴 Blade Ball', value: '```Under Development```', inline: false },
-                        { name: '⏳ Future Projects', value: '*More games coming soon...*', inline: false }
+                        { name: '🚀 Future Projects', value: '*More games coming soon...*', inline: false }
                     )
                     .setThumbnail(interaction.guild.iconURL({ dynamic: true, size: 256 }) || null)
                     .setFooter({ text: 'LumoHub • Premium Exploiting' })
@@ -578,10 +641,96 @@ client.on('interactionCreate', async interaction => {
         }
     }
 
+    // ── /giveaway (Admin Only) ────────────────────────────────────
+    if (commandName === 'giveaway') {
+        if (!hasKeysRole(member)) {
+            return interaction.reply({ content: '❌ You do not have permission to use this command!', ephemeral: true }).catch(console.error);
+        }
+
+        const winnersCount = interaction.options.getInteger('winners');
+        const durationStr = interaction.options.getString('duration');
+        const prize = interaction.options.getString('prize');
+
+        // Parse duration (e.g. 1h, 1d, 30m)
+        let durationMs = 0;
+        const match = durationStr.match(/^(\d+)([hdm])$/i);
+        if (!match) {
+            return interaction.reply({ content: '❌ Invalid duration format. Please use a number followed by h, d, or m (e.g., `1h`, `2d`, `30m`).', ephemeral: true });
+        }
+
+        const amount = parseInt(match[1]);
+        const unit = match[2].toLowerCase();
+
+        if (unit === 'm') durationMs = amount * 60 * 1000;
+        else if (unit === 'h') durationMs = amount * 60 * 60 * 1000;
+        else if (unit === 'd') durationMs = amount * 24 * 60 * 60 * 1000;
+
+        const endsAt = Date.now() + durationMs;
+        const endsAtTimestamp = Math.floor(endsAt / 1000);
+
+        // Standard embedded logo for LumoHub
+        const logoUrl = 'https://cdn.discordapp.com/attachments/1510271282082615326/1510345380997365780/ChatGPT_Image_29._toukok._2026_klo_22.01.14.png?ex=6a1c7a3f&is=6a1b28bf&hm=f1d6d05874c6385fa43004e933012d2f122a43eb28c32b9163ccb109ef552eaf&';
+
+        await interaction.deferReply({ ephemeral: true });
+
+        const embed = new EmbedBuilder()
+            .setTitle('🎉 **LUMOHUB GIVEAWAY** 🎉')
+            .setDescription(`**Prize:** ${prize}\n**Winners:** ${winnersCount}\n**Ends:** <t:${endsAtTimestamp}:R> (<t:${endsAtTimestamp}:f>)\n\nReact with 🎉 to enter!`)
+            .setColor(0xFECC23) // LumoHub Golden Hex
+            .setThumbnail(logoUrl)
+            .setFooter({ text: `LumoHub Giveaways • Hosted by ${user.username}` })
+            .setTimestamp(endsAt);
+
+        await interaction.editReply({ content: 'Giveaway started!' });
+        const message = await interaction.channel.send({ content: '🎉 **GIVEAWAY!** 🎉', embeds: [embed] });
+        await message.react('🎉');
+
+        setTimeout(async () => {
+            try {
+                const fetchedMessage = await interaction.channel.messages.fetch(message.id);
+                const reaction = fetchedMessage.reactions.cache.get('🎉');
+                if (!reaction) return;
+
+                const users = await reaction.users.fetch();
+                const eligibleUsers = Array.from(users.values()).filter(u => !u.bot);
+
+                if (eligibleUsers.length === 0) {
+                    const failEmbed = new EmbedBuilder()
+                        .setTitle('🎉 Giveaway Ended 🎉')
+                        .setDescription(`Nobody entered the giveaway for **${prize}**.`)
+                        .setColor(0xef4444)
+                        .setFooter({ text: 'LumoHub Giveaways' });
+                    return fetchedMessage.reply({ embeds: [failEmbed] });
+                }
+
+                // Pick winners
+                const winners = [];
+                for (let i = 0; i < Math.min(winnersCount, eligibleUsers.length); i++) {
+                    const winnerIndex = Math.floor(Math.random() * eligibleUsers.length);
+                    winners.push(eligibleUsers.splice(winnerIndex, 1)[0]);
+                }
+
+                const winnersText = winners.map(w => `<@${w.id}>`).join(', ');
+                
+                const winEmbed = new EmbedBuilder()
+                    .setTitle('🎉 Giveaway Ended! 🎉')
+                    .setDescription(`**Prize:** ${prize}\n**Winner(s):** ${winnersText}`)
+                    .setColor(0x10b981) // Green
+                    .setFooter({ text: 'LumoHub Giveaways' });
+
+                await fetchedMessage.reply({ content: `Congratulations ${winnersText}! You won **${prize}**!`, embeds: [winEmbed] });
+            } catch (err) {
+                console.error('[LumoHub] Failed to end giveaway:', err);
+            }
+        }, durationMs);
+        
+        return;
+    }
+
     // ── /setuptickets (Owner Only) ────────────────────────────
         if (commandName === 'setuptickets') {
-            if (!hasOwnerRole(member)) {
-                return interaction.reply({ content: '❌ You do not have permission to use this command!', ephemeral: true });
+            if (!hasKeysRole(member)) {
+                return interaction.reply({ content: '❌ You do not have permission to use this command!', ephemeral: true }).catch(console.error);
             }
             
             const embed = new EmbedBuilder()
