@@ -245,6 +245,14 @@ const commands = [
         .setDescription('Test the welcome embed and message in the welcome channel (Admin Only)')
         .toJSON(),
     new SlashCommandBuilder()
+        .setName('resethwid')
+        .setDescription('Reset the HWID binding for a specific key (Admin Only)')
+        .addStringOption(option =>
+            option.setName('key')
+                .setDescription('The key to reset the HWID for')
+                .setRequired(true))
+        .toJSON(),
+    new SlashCommandBuilder()
         .setName('poststatus')
         .setDescription('Post the LumoHub game execution status to the status channel (Admin Only)')
         .toJSON(),
@@ -575,6 +583,29 @@ client.on('interactionCreate', async interaction => {
             .setTimestamp();
 
         return interaction.reply({ embeds: [embed], ephemeral: true });
+    }
+
+    // ── /resethwid (Admin Only) ─────────────────────────────
+    if (commandName === 'resethwid') {
+        if (!hasOwnerRole(member)) {
+            return interaction.reply({ content: '❌ You do not have permission to use this command!', ephemeral: true });
+        }
+
+        const targetKey = interaction.options.getString('key');
+        if (!validKeys.has(targetKey)) {
+            return interaction.reply({ content: `❌ Key \`${targetKey}\` not found or already expired.`, ephemeral: true });
+        }
+
+        const keyData = validKeys.get(targetKey);
+        if (!keyData.hwid) {
+            return interaction.reply({ content: `⚠️ Key \`${targetKey}\` has not been claimed by any device yet.`, ephemeral: true });
+        }
+
+        delete keyData.hwid;
+        validKeys.set(targetKey, keyData);
+        saveData();
+
+        return interaction.reply({ content: `✅ Successfully reset the HWID binding for key \`${targetKey}\`. It can now be used on a new device.`, ephemeral: true });
     }
 
     // ── /testwelcome (Owner Only) ─────────────────────────────
