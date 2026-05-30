@@ -621,6 +621,8 @@ table.insert(ESP.Connections, RunService.RenderStepped:Connect(function()
     if ESP.Enabled then ESP:Update() end
 end))
 
+ESPTab:CreateSection("Visuals & ESP")
+
 ESPTab:CreateToggle({
     Name = "Enable ESP",
     CurrentValue = false,
@@ -767,6 +769,8 @@ RunService.RenderStepped:Connect(function()
     Aimbot.FOVCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
 end)
 
+AimbotTab:CreateSection("Aimbot Logic")
+
 AimbotTab:CreateToggle({
     Name = "Enable Aimbot (Hold Right Click)",
     CurrentValue = false,
@@ -867,6 +871,8 @@ end
 
 Player.CharacterAdded:Connect(UpdatePlayerProperties)
 
+PlayerTab:CreateSection("Player Modifiers")
+
 PlayerTab:CreateSlider({
     Name = "Walk Speed",
     Range = {16, 100},
@@ -938,6 +944,8 @@ Player.CharacterAdded:Connect(function()
         end
     end)
 end)
+
+GunTab:CreateSection("Weapon Management")
 
 GunTab:CreateButton({
     Name = "Activate Gun Spawn/Grab Tools",
@@ -1030,6 +1038,8 @@ local function disableNoclip()
     end
 end
 
+MovementTab:CreateSection("Movement Bypasses")
+
 MovementTab:CreateToggle({
     Name = "Enable Fly",
     CurrentValue = false,
@@ -1104,6 +1114,8 @@ local function teleportTo(position)
     end
 end
 
+TeleportTab:CreateSection("Streetz War 2 Locations")
+
 for _, location in ipairs(TeleportLocations) do
     TeleportTab:CreateButton({
         Name = "Teleport to " .. location.Name,
@@ -1116,6 +1128,8 @@ end
 -- ──────────────────────────────────────────────────────────────
 -- SETTINGS
 -- ──────────────────────────────────────────────────────────────
+SettingsTab:CreateSection("Menu Settings")
+
 SettingsTab:CreateButton({
     Name = "Unload Menu (Might be buggy)",
     Callback = function()
