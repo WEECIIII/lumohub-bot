@@ -778,7 +778,8 @@ client.on('interactionCreate', async interaction => {
                             { label: 'Support', description: 'General support for LumoHub scripts', value: 'ticket_support', emoji: '🔧' },
                             { label: 'Content Creation', description: 'Apply to be a content creator', value: 'ticket_content', emoji: '🎥' },
                             { label: 'Bug Report', description: 'Report a bug or exploit issue', value: 'ticket_bug', emoji: '🐛' },
-                            { label: 'Redeem Giveaway Prize', description: 'Claim a prize you won', value: 'ticket_giveaway', emoji: '🎁' }
+                            { label: 'Redeem Giveaway Prize', description: 'Claim a prize you won', value: 'ticket_giveaway', emoji: '🎁' },
+                            { label: 'HWID Reset', description: 'Reset your HWID binding (Premium Only)', value: 'ticket_hwid_reset', emoji: '🔑' }
                         ])
                 );
 
@@ -826,6 +827,12 @@ client.on('interactionCreate', async interaction => {
             if (category === 'ticket_content') { channelName = `content-creation-${user.username}`; embedTitle = 'CONTENT CREATION'; }
             if (category === 'ticket_bug') { channelName = `bug-report-${user.username}`; embedTitle = 'BUG REPORT'; }
             if (category === 'ticket_giveaway') { channelName = `giveaway-prize-${user.username}`; embedTitle = 'GIVEAWAY PRIZE'; }
+            if (category === 'ticket_hwid_reset') { 
+                channelName = `hwid-reset-${user.username}`; 
+                embedTitle = 'HWID RESET'; 
+                pingContent = `<@${user.id}> | <@&${OWNER_ROLE_ID}>`;
+                embedDesc = `Welcome ${user}! The admin team (<@&${OWNER_ROLE_ID}>) will be with you shortly to handle your HWID reset request.\n\nPlease provide your current Premium Key and the reason for the reset.`;
+            }
             
             try {
                 const channel = await guild.channels.create({
