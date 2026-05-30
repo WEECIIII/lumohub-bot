@@ -549,16 +549,18 @@ client.on('interactionCreate', async interaction => {
             const guild = interaction.guild;
             const user = interaction.user;
             
-            let categoryName = 'ticket';
-            if (category === 'ticket_support') categoryName = 'support';
-            if (category === 'ticket_content') categoryName = 'content';
-            if (category === 'ticket_bug') categoryName = 'bug';
-            if (category === 'ticket_giveaway') categoryName = 'giveaway';
+            let channelName = `ticket-${user.username}`;
+            let embedTitle = 'TICKET';
+            if (category === 'ticket_support') { channelName = `support-ticket-${user.username}`; embedTitle = 'SUPPORT'; }
+            if (category === 'ticket_content') { channelName = `content-creation-${user.username}`; embedTitle = 'CONTENT CREATION'; }
+            if (category === 'ticket_bug') { channelName = `bug-report-${user.username}`; embedTitle = 'BUG REPORT'; }
+            if (category === 'ticket_giveaway') { channelName = `giveaway-prize-${user.username}`; embedTitle = 'GIVEAWAY PRIZE'; }
             
             try {
                 const channel = await guild.channels.create({
-                    name: `${categoryName}-${user.username}`,
+                    name: channelName,
                     type: ChannelType.GuildText,
+                    parent: '1510245034077851808',
                     permissionOverwrites: [
                         {
                             id: guild.roles.everyone.id,
@@ -576,7 +578,7 @@ client.on('interactionCreate', async interaction => {
                 });
 
                 const embed = new EmbedBuilder()
-                    .setTitle(`🎫 ${categoryName.toUpperCase()} TICKET`)
+                    .setTitle(`🎫 ${embedTitle} TICKET`)
                     .setDescription(`Welcome ${user}! The staff team (<@&${OWNER_ROLE_ID}>) will be with you shortly.\n\nPlease describe your issue or request in detail.`)
                     .setColor(0xFECC23);
 
