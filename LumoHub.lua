@@ -1380,27 +1380,57 @@ PlayerTab:CreateSlider({
 
 PlayerTab:CreateSection("God Mode & Spoofs")
 
-local GodModeEnabled = false
+local DesyncLoop
 PlayerTab:CreateToggle({
-    Name = "God Mode (Auto-Heal / Hitbox Remover)",
+    Name = "Invincibility Desync (Anti-Aim)",
     CurrentValue = false,
-    Flag = "Player_GodMode",
+    Flag = "Player_Desync",
     Callback = function(Value)
-        GodModeEnabled = Value
         if Value then
-            task.spawn(function()
-                while GodModeEnabled do
-                    task.wait(0.1)
-                    if Player.Character and Player.Character:FindFirstChildOfClass("Humanoid") then
-                        pcall(function()
-                            Player.Character:FindFirstChildOfClass("Humanoid").Health = Player.Character:FindFirstChildOfClass("Humanoid").MaxHealth
-                        end)
+            DesyncLoop = game:GetService("RunService").Heartbeat:Connect(function()
+                if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
+                    local hrp = Player.Character.HumanoidRootPart
+                    local oldVel = hrp.Velocity
+                    hrp.Velocity = Vector3.new(math.random(-500,500), math.random(500,9999), math.random(-500,500))
+                    game:GetService("RunService").RenderStepped:Wait()
+                    hrp.Velocity = oldVel
+                end
+            end)
+            Rayfield:Notify({Title = "Desync Enabled", Content = "Your server-side hitbox is now flying around rapidly, making you extremely hard to hit!", Duration = 4})
+        else
+            if DesyncLoop then DesyncLoop:Disconnect() end
+            Rayfield:Notify({Title = "Desync Disabled", Content = "Your hitbox is back to normal.", Duration = 2})
+        end
+    end,
+})
+
+local HitboxLoop
+PlayerTab:CreateToggle({
+    Name = "Ghost Hitboxes (God Mode)",
+    CurrentValue = false,
+    Flag = "Player_GhostHitboxes",
+    Callback = function(Value)
+        if Value then
+            HitboxLoop = game:GetService("RunService").Stepped:Connect(function()
+                if Player.Character then
+                    for _, part in pairs(Player.Character:GetChildren()) do
+                        if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
+                            pcall(function() part.CanQuery = false end)
+                        end
                     end
                 end
             end)
-            Rayfield:Notify({Title = "God Mode Enabled", Content = "You are now healing constantly. Warning: May not bypass instant-kill weapons.", Duration = 4})
+            Rayfield:Notify({Title = "Hitboxes Ghosted", Content = "Server raycast bullets should pass straight through you now.", Duration = 4})
         else
-            Rayfield:Notify({Title = "God Mode Disabled", Content = "You are vulnerable again.", Duration = 2})
+            if HitboxLoop then HitboxLoop:Disconnect() end
+            if Player.Character then
+                for _, part in pairs(Player.Character:GetChildren()) do
+                    if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
+                        pcall(function() part.CanQuery = true end)
+                    end
+                end
+            end
+            Rayfield:Notify({Title = "Hitboxes Restored", Content = "You are vulnerable again.", Duration = 2})
         end
     end,
 })
