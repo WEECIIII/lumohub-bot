@@ -965,7 +965,9 @@ local ESP = {
     Enabled = false,
     Box = false,
     Skeleton = false,
-    Color = Color3.fromRGB(255, 255, 255)
+    Color = Color3.fromRGB(255, 255, 255),
+    Thickness = 1,
+    Transparency = 1
 }
 
 function ESP:ClearDrawings(player)
@@ -1004,9 +1006,9 @@ function ESP:CreateDrawings(player)
     self:ClearDrawings(player)
     local function createLine()
         local l = Drawing.new("Line")
-        l.Thickness = 1
+        l.Thickness = ESP.Thickness
         l.Color = ESP.Color
-        l.Transparency = 1
+        l.Transparency = ESP.Transparency
         l.Visible = false
         return l
     end
