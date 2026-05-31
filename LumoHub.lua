@@ -1446,15 +1446,18 @@ PlayerTab:CreateInput({
             return
         end
         pcall(function()
-            local leaderstats = Player:FindFirstChild("leaderstats")
-            if leaderstats then
-                local level = leaderstats:FindFirstChild("Level") or leaderstats:FindFirstChild("level")
-                if level then
-                    level.Value = num
-                    Rayfield:Notify({Title = "Level Spoofed!", Content = "Your level is now " .. tostring(num) .. ". Note: Others cannot see this.", Duration = 4})
-                else
-                    Rayfield:Notify({Title = "Error", Content = "Could not find Level stat.", Duration = 2})
+            local foundLevel = false
+            for _, v in pairs(Player:GetDescendants()) do
+                if (v:IsA("IntValue") or v:IsA("NumberValue") or v:IsA("StringValue")) and string.find(string.lower(v.Name), "level") then
+                    v.Value = num
+                    foundLevel = true
                 end
+            end
+            
+            if foundLevel then
+                Rayfield:Notify({Title = "Level Spoofed!", Content = "Your level is now " .. tostring(num) .. ". Note: Others cannot see this.", Duration = 4})
+            else
+                Rayfield:Notify({Title = "Error", Content = "Could not find any stat named 'Level'.", Duration = 2})
             end
         end)
     end,
