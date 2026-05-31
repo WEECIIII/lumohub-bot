@@ -698,6 +698,7 @@ client.on('interactionCreate', async interaction => {
                         { name: '🟢 Streetz War 2', value: '```Active & Working```', inline: false },
                         { name: '🟢 Murder Mystery 2', value: '```Active & Working```', inline: false },
                         { name: '🟡 Grow a Garden', value: '```Dropping VERY soon... 👀```', inline: false },
+                        { name: '🔴 Blade Ball', value: '```Under Development```', inline: false },
                         { name: '🚀 Future Projects', value: '*More games coming soon...*', inline: false }
                     )
                     .setThumbnail(interaction.guild.iconURL({ dynamic: true, size: 256 }) || null)
