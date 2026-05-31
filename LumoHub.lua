@@ -955,14 +955,16 @@ local SettingsTab = Window:CreateTab("Settings ⚙️", 4483362458)
 -- ──────────────────────────────────────────────────────────────
 -- ESP IMPLEMENTATION
 -- ──────────────────────────────────────────────────────────────
+if _G.LumoESP_Conns then
+    for _, c in pairs(_G.LumoESP_Conns) do pcall(function() c:Disconnect() end) end
+end
+_G.LumoESP_Conns = {}
+
 local ESP = { 
     Drawings = {}, 
-    Connections = {},
     Enabled = false,
     Box = false,
-    Name = false,
-    Health = false,
-    Tool = false,
+    Skeleton = false,
     Color = Color3.fromRGB(255, 255, 255)
 }
 
@@ -974,12 +976,10 @@ function ESP:ClearDrawings(player)
                 for _, obj in pairs(v) do 
                     pcall(function() obj.Visible = false end)
                     pcall(function() if obj.Remove then obj:Remove() end end)
-                    pcall(function() if obj.Destroy then obj:Destroy() end end)
                 end
             else
                 pcall(function() v.Visible = false end)
                 pcall(function() if v.Remove then v:Remove() end end)
-                pcall(function() if v.Destroy then v:Destroy() end end)
             end
         end
         self.Drawings[player] = nil
@@ -997,38 +997,34 @@ function ESP:SetupPlayer(player)
         end)
     end
     if player.Character then setupCharacter(player.Character) end
-    table.insert(ESP.Connections, player.CharacterAdded:Connect(setupCharacter))
+    table.insert(_G.LumoESP_Conns, player.CharacterAdded:Connect(setupCharacter))
 end
 
 function ESP:CreateDrawings(player)
     self:ClearDrawings(player)
+    local function createLine()
+        local l = Drawing.new("Line")
+        l.Thickness = 1
+        l.Color = ESP.Color
+        l.Transparency = 1
+        l.Visible = false
+        return l
+    end
+    
     local d = {
         Box = {
-            TL = Drawing.new("Line"), TR = Drawing.new("Line"),
-            BR = Drawing.new("Line"), BL = Drawing.new("Line")
+            TL = createLine(), TR = createLine(),
+            BR = createLine(), BL = createLine()
         },
-        Name = Drawing.new("Text"),
-        Health = Drawing.new("Text"),
-        Tool = Drawing.new("Text")
+        Skeleton = {
+            Head = createLine(), Spine = createLine(),
+            LArm = createLine(), LHand = createLine(),
+            RArm = createLine(), RHand = createLine(),
+            LLeg = createLine(), LFoot = createLine(),
+            RLeg = createLine(), RFoot = createLine()
+        }
     }
-    for _, line in pairs(d.Box) do
-        line.Thickness = 1
-        line.Color = ESP.Color
-        line.Transparency = 1
-        line.Visible = false
-    end
-    for _, text in ipairs({d.Name, d.Health, d.Tool}) do
-        text.Color = ESP.Color
-        text.Size = 14
-        text.Center = true
-        text.Outline = true
-        text.Visible = false
-    end
     self.Drawings[player] = d
-end
-
-function ESP:Clear(player)
-    self:ClearDrawings(player)
 end
 
 function ESP:Update()
@@ -1042,12 +1038,12 @@ function ESP:Update()
         local head = char and char:FindFirstChild("Head")
         local hum = char and char:FindFirstChildOfClass("Humanoid")
         
-        -- Check if character is actually in the workspace and alive
         if d and player ~= Players.LocalPlayer and char and char.Parent and hrp and head and hum and hum.Health > 0 then
             pcall(function()
                 local rootPos, onScreen = currentCamera:WorldToViewportPoint(hrp.Position)
                 
                 if onScreen then
+                    -- BOX ESP
                     local headPos = currentCamera:WorldToViewportPoint(head.Position)
                     local bottomPos = currentCamera:WorldToViewportPoint(hrp.Position - Vector3.new(0, 3, 0))
                     local height = headPos.Y - bottomPos.Y
@@ -1061,62 +1057,65 @@ function ESP:Update()
                     d.Box.TR.From, d.Box.TR.To = tr, br
                     d.Box.BR.From, d.Box.BR.To = br, bl
                     d.Box.BL.From, d.Box.BL.To = bl, tl
+                    
                     for _, line in pairs(d.Box) do 
                         line.Color = ESP.Color
                         line.Visible = ESP.Enabled and ESP.Box 
                     end
                     
-                    d.Name.Text = player.Name
-                    d.Name.Position = Vector2.new(rootPos.X, tl.Y - 14)
-                    d.Name.Color = ESP.Color
-                    d.Name.Visible = ESP.Enabled and ESP.Name
-                    
-                    d.Health.Text = "HP: " .. math.floor(hum.Health)
-                    d.Health.Position = Vector2.new(rootPos.X, br.Y + 2)
-                    d.Health.Color = ESP.Color
-                    d.Health.Visible = ESP.Enabled and ESP.Health
-                    
-                    if ESP.Enabled and ESP.Tool then
-                        local tool = char:FindFirstChildOfClass("Tool")
-                        if tool then
-                            d.Tool.Text = "Tool: " .. tool.Name
-                            d.Tool.Position = Vector2.new(rootPos.X, br.Y + 18)
-                            d.Tool.Color = ESP.Color
-                            d.Tool.Visible = true
-                        else
-                            d.Tool.Visible = false
+                    -- SKELETON ESP
+                    if ESP.Enabled and ESP.Skeleton then
+                        local function connect(line, p1, p2)
+                            if char:FindFirstChild(p1) and char:FindFirstChild(p2) then
+                                local pos1, vis1 = currentCamera:WorldToViewportPoint(char[p1].Position)
+                                local pos2, vis2 = currentCamera:WorldToViewportPoint(char[p2].Position)
+                                if vis1 or vis2 then
+                                    line.From = Vector2.new(pos1.X, pos1.Y)
+                                    line.To = Vector2.new(pos2.X, pos2.Y)
+                                    line.Color = ESP.Color
+                                    line.Visible = true
+                                else
+                                    line.Visible = false
+                                end
+                            else
+                                line.Visible = false
+                            end
                         end
+                        
+                        connect(d.Skeleton.Head, "Head", "UpperTorso")
+                        connect(d.Skeleton.Spine, "UpperTorso", "LowerTorso")
+                        connect(d.Skeleton.LArm, "UpperTorso", "LeftUpperArm")
+                        connect(d.Skeleton.LHand, "LeftUpperArm", "LeftLowerArm")
+                        connect(d.Skeleton.RArm, "UpperTorso", "RightUpperArm")
+                        connect(d.Skeleton.RHand, "RightUpperArm", "RightLowerArm")
+                        connect(d.Skeleton.LLeg, "LowerTorso", "LeftUpperLeg")
+                        connect(d.Skeleton.LFoot, "LeftUpperLeg", "LeftLowerLeg")
+                        connect(d.Skeleton.RLeg, "LowerTorso", "RightUpperLeg")
+                        connect(d.Skeleton.RFoot, "RightUpperLeg", "RightLowerLeg")
                     else
-                        d.Tool.Visible = false
+                        for _, line in pairs(d.Skeleton) do line.Visible = false end
                     end
                 else
-                    -- Offscreen
                     for _, line in pairs(d.Box) do line.Visible = false end
-                    d.Name.Visible = false
-                    d.Health.Visible = false
-                    d.Tool.Visible = false
+                    for _, line in pairs(d.Skeleton) do line.Visible = false end
                 end
             end)
         elseif d then
             pcall(function()
                 for _, line in pairs(d.Box) do line.Visible = false end
-                d.Name.Visible = false
-                d.Health.Visible = false
-                d.Tool.Visible = false
+                for _, line in pairs(d.Skeleton) do line.Visible = false end
             end)
         end
     end
 end
 
 for _, p in ipairs(Players:GetPlayers()) do if p ~= Player then ESP:SetupPlayer(p) end end
-table.insert(ESP.Connections, Players.PlayerAdded:Connect(function(p) if p ~= Player then ESP:SetupPlayer(p) end end))
-table.insert(ESP.Connections, Players.PlayerRemoving:Connect(function(p) ESP:ClearDrawings(p) end))
+table.insert(_G.LumoESP_Conns, Players.PlayerAdded:Connect(function(p) if p ~= Player then ESP:SetupPlayer(p) end end))
+table.insert(_G.LumoESP_Conns, Players.PlayerRemoving:Connect(function(p) ESP:ClearDrawings(p) end))
 
-table.insert(ESP.Connections, RunService.RenderStepped:Connect(function()
+table.insert(_G.LumoESP_Conns, RunService.RenderStepped:Connect(function()
     if ESP.Enabled then ESP:Update() end
 end))
-
-ESPTab:CreateSection("Visuals & ESP")
 
 ESPTab:CreateToggle({
     Name = "Enable ESP",
@@ -1129,12 +1128,8 @@ ESPTab:CreateToggle({
                 pcall(function()
                     local d = ESP.Drawings[p]
                     if d then
-                        for _, line in pairs(d.Box) do 
-                            pcall(function() line.Visible = false end) 
-                        end
-                        pcall(function() d.Name.Visible = false end)
-                        pcall(function() d.Health.Visible = false end)
-                        pcall(function() d.Tool.Visible = false end)
+                        for _, line in pairs(d.Box) do pcall(function() line.Visible = false end) end
+                        for _, line in pairs(d.Skeleton) do pcall(function() line.Visible = false end) end
                     end
                 end)
             end
@@ -1152,29 +1147,11 @@ ESPTab:CreateToggle({
 })
 
 ESPTab:CreateToggle({
-    Name = "Names",
+    Name = "Skeletons",
     CurrentValue = false,
-    Flag = "ESP_Name",
+    Flag = "ESP_Skeleton",
     Callback = function(Value)
-        ESP.Name = Value
-    end,
-})
-
-ESPTab:CreateToggle({
-    Name = "Health Indicator",
-    CurrentValue = false,
-    Flag = "ESP_Health",
-    Callback = function(Value)
-        ESP.Health = Value
-    end,
-})
-
-ESPTab:CreateToggle({
-    Name = "Equipped Tools",
-    CurrentValue = false,
-    Flag = "ESP_Tool",
-    Callback = function(Value)
-        ESP.Tool = Value
+        ESP.Skeleton = Value
     end,
 })
 
