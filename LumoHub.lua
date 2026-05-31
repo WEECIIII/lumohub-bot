@@ -68,7 +68,127 @@ local function FixRayfieldSliders()
 end
 FixRayfieldSliders()
 
+local function CreateProtectionsTab(Window)
+    local MiscTab = Window:CreateTab("Misc & Protections 🛡️", 4483362458)
+    
+    MiscTab:CreateSection("Protections")
+    MiscTab:CreateToggle({
+        Name = "Anti-AFK (Stealth / Undetected)",
+        CurrentValue = false,
+        Flag = "AntiAFK",
+        Callback = function(Value)
+            _G.AntiAFKEnabled = Value
+            if Value then
+                if getconnections then
+                    for _, conn in pairs(getconnections(Player.Idled)) do
+                        if conn.Disable then conn:Disable() end
+                    end
+                    Rayfield:Notify({Title = "Anti-AFK Enabled", Content = "Stealth method active! You won't be kicked for idling.", Duration = 3})
+                else
+                    -- Fallback for executors without getconnections
+                    _G.AntiAFKConnection = Player.Idled:Connect(function()
+                        if _G.AntiAFKEnabled then
+                            local vim = game:GetService("VirtualInputManager")
+                            vim:SendKeyEvent(true, Enum.KeyCode.Space, false, game)
+                            task.wait(0.1)
+                            vim:SendKeyEvent(false, Enum.KeyCode.Space, false, game)
+                        end
+                    end)
+                    Rayfield:Notify({Title = "Anti-AFK Enabled", Content = "Fallback method active!", Duration = 3})
+                end
+            else
+                if getconnections then
+                    for _, conn in pairs(getconnections(Player.Idled)) do
+                        if conn.Enable then conn:Enable() end
+                    end
+                end
+                if _G.AntiAFKConnection then
+                    _G.AntiAFKConnection:Disconnect()
+                    _G.AntiAFKConnection = nil
+                end
+            end
+        end,
+    })
+
+    MiscTab:CreateButton({
+        Name = "Anti-Kick (Metatable Hook)",
+        Callback = function()
+            if not hookmetamethod then
+                Rayfield:Notify({Title = "Error", Content = "Your executor does not support hookmetamethod!", Duration = 3})
+                return
+            end
+            
+            if _G.AntiKickHooked then
+                Rayfield:Notify({Title = "Already Hooked", Content = "Anti-Kick is already running.", Duration = 2})
+                return
+            end
+            _G.AntiKickHooked = true
+            
+            local oldNamecall
+            oldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
+                local method = getnamecallmethod()
+                if not checkcaller() and (method == "Kick" or method == "kick") and self == Player then
+                    return -- Ignore the kick
+                end
+                return oldNamecall(self, ...)
+            end))
+            Rayfield:Notify({Title = "Anti-Kick Enabled", Content = "Client-sided kicks will now be blocked.", Duration = 3})
+        end,
+    })
+
+    MiscTab:CreateSection("Quality of Life")
+    MiscTab:CreateButton({
+        Name = "Server Hopper (Smallest Server)",
+        Callback = function()
+            Rayfield:Notify({Title = "Searching...", Content = "Looking for a small server...", Duration = 3})
+            local HttpService = game:GetService("HttpService")
+            local TeleportService = game:GetService("TeleportService")
+            pcall(function()
+                local Servers = HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/"..game.PlaceId.."/servers/Public?sortOrder=Asc&limit=100"))
+                for _, server in pairs(Servers.data) do
+                    if server.playing < server.maxPlayers and server.id ~= game.JobId then
+                        TeleportService:TeleportToPlaceInstance(game.PlaceId, server.id, Player)
+                        break
+                    end
+                end
+            end)
+        end,
+    })
+
+    MiscTab:CreateButton({
+        Name = "FPS Booster (Potato PC Mode)",
+        Callback = function()
+            local workspace = game:GetService("Workspace")
+            local lighting = game:GetService("Lighting")
+            local terrain = workspace:FindFirstChildOfClass('Terrain')
+            if terrain then
+                terrain.WaterWaveSize = 0
+                terrain.WaterWaveSpeed = 0
+                terrain.WaterReflectance = 0
+                terrain.WaterTransparency = 0
+            end
+            lighting.GlobalShadows = false
+            lighting.FogEnd = 9e9
+            settings().Rendering.QualityLevel = 1
+            for _, v in pairs(game:GetDescendants()) do
+                if v:IsA("Part") or v:IsA("UnionOperation") or v:IsA("MeshPart") then
+                    v.Material = Enum.Material.Plastic
+                    v.Reflectance = 0
+                elseif (v:IsA("Decal") or v:IsA("Texture")) then
+                    v.Transparency = 1
+                elseif v:IsA("ParticleEmitter") or v:IsA("Trail") then
+                    v.Lifetime = NumberRange.new(0)
+                end
+            end
+            Rayfield:Notify({Title = "FPS Boosted", Content = "Graphics have been completely stripped for max performance.", Duration = 3})
+        end,
+    })
+end
+
 local function LoadLumoHub(activeKey, authGui)
+    local success, info = pcall(function() return game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId) end)
+    local GameName = (success and info) and info.Name or "Unknown Game"
+
     if game.GameId == 4777817887 or game.PlaceId == 13772394625 or workspace:FindFirstChild("Balls") then
         local Window = Rayfield:CreateWindow({
             Name = "LumoHub Premium | Blade Ball ⚔️",
@@ -203,12 +323,586 @@ local function LoadLumoHub(activeKey, authGui)
                 end
             end,
         })
+        local DevTab = Window:CreateTab("Developer 🛠️", 4483362458)
+        
+        DevTab:CreateSection("Scripting Tools")
+        
+        DevTab:CreateButton({
+            Name = "Get Path Finder Tool",
+            Callback = function()
+                local tool = Instance.new("Tool")
+                tool.Name = "Path Finder Tool"
+                tool.RequiresHandle = false
+                
+                tool.Equipped:Connect(function(mouse)
+                    mouse.Button1Down:Connect(function()
+                        if mouse.Target then
+                            local path = mouse.Target:GetFullName()
+                            pcall(function() setclipboard(path) end)
+                            Rayfield:Notify({Title = "Path Copied!", Content = path, Duration = 3})
+                        end
+                    end)
+                end)
+                
+                tool.Parent = Player.Backpack
+                Rayfield:Notify({Title = "Tool Given", Content = "Equip the 'Path Finder Tool' and click on anything to copy its path!", Duration = 3})
+            end,
+        })
 
+        local spyEnabled = false
+        local spyHooked = false
+        local oldNamecall
+        
+        DevTab:CreateToggle({
+            Name = "Enable Remote Spy (Logs to F9 & Clipboard)",
+            CurrentValue = false,
+            Flag = "RemoteSpyBB",
+            Callback = function(Value)
+                spyEnabled = Value
+                if Value then
+                    Rayfield:Notify({Title = "Remote Spy Enabled", Content = "Press F9 to see RemoteEvents being fired. The last fired remote is copied to your clipboard.", Duration = 4})
+                    
+                    if not spyHooked and hookmetamethod then
+                        spyHooked = true
+                        oldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
+                            local method = getnamecallmethod()
+                            if spyEnabled and (method == "FireServer" or method == "InvokeServer") then
+                                local args = {...}
+                                local argsStr = ""
+                                for i, v in ipairs(args) do
+                                    argsStr = argsStr .. tostring(v) .. (i < #args and ", " or "")
+                                end
+                                local logStr = string.format("game.%s:%s(%s)", self:GetFullName(), method, argsStr)
+                                print("[SPY] " .. logStr)
+                                pcall(function() setclipboard(logStr) end)
+                            end
+                            return oldNamecall(self, ...)
+                        end))
+                    end
+                end
+            end,
+        })
+
+        CreateProtectionsTab(Window)
+        Rayfield:LoadConfiguration()
+
+    -- ──────────────────────────────────────────────────────────────
+    -- BIKELIFE FINLAND HUB
+    -- ──────────────────────────────────────────────────────────────
+    elseif game.PlaceId == 11520261175 or game.PlaceId == 16641885448 or GameName:lower():find("bikelife") then
+        local Window = Rayfield:CreateWindow({
+            Name = "LumoHub 🌟 | Bikelife Finland",
+            LoadingTitle = "LumoHub Premium",
+            LoadingSubtitle = "by LumoHub Team",
+            ConfigurationSaving = {
+                Enabled = false,
+                FolderName = "LumoHubConfig",
+                FileName = "BikelifeFinland"
+            },
+            Discord = {
+                Enabled = true,
+                Invite = "qkCRXBeEpB",
+                RememberJoins = true
+            },
+            KeySystem = false
+        })
+        Rayfield:Notify({
+            Title = "Game Detected",
+            Content = "Bikelife Finland scripts loaded!",
+            Duration = 3,
+            Image = 4483362458,
+        })
+        -- ── VEHICLES TAB ──
+        local VehicleTab = Window:CreateTab("Vehicles 🏍️", 4483362458)
+        
+        VehicleTab:CreateSection("Vehicle ESP & Detection")
+        
+        local VehicleESPEnabled = false
+        local ESPBoxes = {}
+        
+        VehicleTab:CreateToggle({
+            Name = "Enable Vehicle ESP",
+            CurrentValue = false,
+            Flag = "BikelifeVehicleESP",
+            Callback = function(Value)
+                VehicleESPEnabled = Value
+                if not Value then
+                    -- Clear ESP
+                    for _, box in pairs(ESPBoxes) do
+                        if box then box:Remove() end
+                    end
+                    ESPBoxes = {}
+                end
+            end,
+        })
+
+        -- Continuous ESP Update loop
+        RunService.RenderStepped:Connect(function()
+            if not VehicleESPEnabled then return end
+            
+            -- Assuming vehicles are stored in Workspace.Vehicles (we'll adapt this if they use a different folder)
+            local vehicleFolder = workspace:FindFirstChild("Vehicles") or workspace
+            
+            for _, v in pairs(vehicleFolder:GetDescendants()) do
+                if v:IsA("Model") and v:FindFirstChild("DriveSeat") then -- Basic vehicle check
+                    if not ESPBoxes[v] then
+                        local text = Drawing.new("Text")
+                        text.Visible = false
+                        text.Center = true
+                        text.Outline = true
+                        text.Font = 2
+                        text.Size = 16
+                        text.Color = Color3.fromRGB(0, 255, 255)
+                        ESPBoxes[v] = text
+                    end
+                    
+                    local box = ESPBoxes[v]
+                    local primary = v.PrimaryPart or v:FindFirstChild("DriveSeat")
+                    
+                    if primary then
+                        local pos, onScreen = Camera:WorldToViewportPoint(primary.Position)
+                        if onScreen then
+                            local distance = (Camera.CFrame.Position - primary.Position).Magnitude
+                            box.Position = Vector2.new(pos.X, pos.Y)
+                            box.Text = string.format("%s [%d m]", v.Name, math.floor(distance))
+                            box.Visible = true
+                            
+                            -- Highlight Admin/Staff vehicles in Red
+                            if v.Name:lower():find("admin") or v.Name:lower():find("staff") or v.Name:lower():find("police") then
+                                box.Color = Color3.fromRGB(255, 0, 0)
+                                box.Text = "[ADMIN] " .. box.Text
+                            else
+                                box.Color = Color3.fromRGB(0, 255, 255)
+                            end
+                        else
+                            box.Visible = false
+                        end
+                    end
+                end
+            end
+            
+            -- Cleanup destroyed vehicles
+            for obj, box in pairs(ESPBoxes) do
+                if not obj or not obj.Parent then
+                    box:Remove()
+                    ESPBoxes[obj] = nil
+                end
+            end
+        end)
+
+        VehicleTab:CreateSection("Admin Vehicle Teleporting")
+        
+        VehicleTab:CreateButton({
+            Name = "Teleport to Police/Admin Car",
+            Callback = function()
+                local nearest = nil
+                local shortestDistance = math.huge
+                
+                -- Check the whole workspace since map vehicles aren't always in 'Vehicles' folder
+                for _, v in pairs(workspace:GetDescendants()) do
+                    if v:IsA("Model") and (v:FindFirstChild("DriveSeat") or v:FindFirstChild("VehicleSeat")) then
+                        local name = v.Name:lower()
+                        -- Check for Police, Poliisi, Cop, Admin, Staff
+                        if name:find("police") or name:find("poliisi") or name:find("cop") or name:find("admin") or name:find("staff") then
+                            local primary = v.PrimaryPart or v:FindFirstChild("DriveSeat") or v:FindFirstChild("VehicleSeat")
+                            if primary then
+                                local distance = (Player.Character.HumanoidRootPart.Position - primary.Position).Magnitude
+                                if distance < shortestDistance then
+                                    shortestDistance = distance
+                                    nearest = primary
+                                end
+                            end
+                        end
+                    end
+                end
+                
+                if nearest and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
+                    Player.Character.HumanoidRootPart.CFrame = nearest.CFrame + Vector3.new(0, 5, 0)
+                    Rayfield:Notify({Title = "Teleported", Content = "Teleported to the Police/Admin Car!", Duration = 3})
+                else
+                    Rayfield:Notify({Title = "Not Found", Content = "Could not find any Police or Admin cars on the map.", Duration = 3})
+                end
+            end,
+        })
+        
+        VehicleTab:CreateButton({
+            Name = "Force-Enter Nearest Vehicle (Bypass Locks)",
+            Callback = function()
+                local nearestSeat = nil
+                local shortestDistance = 50 -- Must be close to it
+                
+                for _, v in pairs(workspace:GetDescendants()) do
+                    if v:IsA("VehicleSeat") or v.Name == "DriveSeat" then
+                        local distance = (Player.Character.HumanoidRootPart.Position - v.Position).Magnitude
+                        if distance < shortestDistance then
+                            shortestDistance = distance
+                            nearestSeat = v
+                        end
+                    end
+                end
+                
+                if nearestSeat and Player.Character and Player.Character:FindFirstChild("Humanoid") then
+                    -- Force the player's humanoid to sit in the seat, bypassing ProximityPrompt locks!
+                    nearestSeat:Sit(Player.Character.Humanoid)
+                    Rayfield:Notify({Title = "Hijacked!", Content = "Forced into the driver seat!", Duration = 3})
+                else
+                    Rayfield:Notify({Title = "Too Far", Content = "Stand closer to a vehicle to hijack it.", Duration = 3})
+                end
+            end,
+        })
+
+        VehicleTab:CreateSection("Server-Side Vehicle Spawner")
+
+        local secretCarNames = {}
+        pcall(function()
+            local modParts = game:GetService("ReplicatedStorage"):FindFirstChild("ModificationParts")
+            if modParts then
+                for _, car in pairs(modParts:GetChildren()) do
+                    table.insert(secretCarNames, car.Name)
+                end
+            end
+        end)
+        
+        -- Fallback if scanning fails
+        if #secretCarNames == 0 then
+            secretCarNames = {"Police", "Poliisi", "Amica", "Mopoauto"}
+        end
+
+        VehicleTab:CreateDropdown({
+            Name = "God Spawner (Auto-Detects Secret Names)",
+            Options = secretCarNames,
+            CurrentOption = "",
+            MultipleOptions = false,
+            Flag = "GodSpawnerDropdown",
+            Callback = function(Option)
+                local selectedCar = type(Option) == "table" and Option[1] or Option
+                local SpawnCar = game:GetService("ReplicatedStorage"):FindFirstChild("SpawnCar")
+                if SpawnCar then
+                    SpawnCar:FireServer(selectedCar)
+                    Rayfield:Notify({Title = "Spawn Requested", Content = "Requested server to spawn: " .. tostring(selectedCar), Duration = 3})
+                else
+                    Rayfield:Notify({Title = "Error", Content = "SpawnCar event not found!", Duration = 3})
+                end
+            end,
+        })
+
+        -- ── FAKE ADMIN & TROLLING ──
+        local TrollTab = Window:CreateTab("Trolling 🎭", 4483362458)
+        
+        TrollTab:CreateSection("Fake Admin Tools")
+        
+        TrollTab:CreateButton({
+            Name = "Equip Fake 'Admin' Overhead",
+            Callback = function()
+                if Player.Character and Player.Character:FindFirstChild("Head") then
+                    -- Remove old if exists
+                    if Player.Character.Head:FindFirstChild("FakeAdminTag") then
+                        Player.Character.Head.FakeAdminTag:Destroy()
+                    end
+                    
+                    local bg = Instance.new("BillboardGui")
+                    bg.Name = "FakeAdminTag"
+                    bg.Adornee = Player.Character.Head
+                    bg.Size = UDim2.new(0, 200, 0, 50)
+                    bg.StudsOffset = Vector3.new(0, 3, 0)
+                    bg.AlwaysOnTop = true
+                    
+                    local text = Instance.new("TextLabel")
+                    text.Size = UDim2.new(1, 0, 1, 0)
+                    text.BackgroundTransparency = 1
+                    text.Text = "[Developer] " .. Player.Name
+                    text.TextColor3 = Color3.fromRGB(150, 150, 150)
+                    text.TextStrokeTransparency = 0
+                    text.Font = Enum.Font.GothamBold
+                    text.TextScaled = true
+                    text.Parent = bg
+                    
+                    bg.Parent = Player.Character.Head
+                    Rayfield:Notify({Title = "Fake Admin", Content = "You now have an Owner overhead tag!", Duration = 3})
+                end
+            end,
+        })
+
+        local FlyEnabled = false
+        local FlySpeed = 50
+        TrollTab:CreateToggle({
+            Name = "Realistic Vehicle Fly (No-Clip)",
+            CurrentValue = false,
+            Flag = "VehicleFly",
+            Callback = function(Value)
+                FlyEnabled = Value
+                
+                if Value then
+                    local bodyVelocity = Instance.new("BodyVelocity")
+                    bodyVelocity.Name = "VehicleFlyVelocity"
+                    bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+                    bodyVelocity.Velocity = Vector3.zero
+                    
+                    local bodyGyro = Instance.new("BodyGyro")
+                    bodyGyro.Name = "VehicleFlyGyro"
+                    bodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+                    
+                    -- Check if player is in a vehicle seat
+                    local humanoid = Player.Character and Player.Character:FindFirstChild("Humanoid")
+                    if humanoid and humanoid.SeatPart and humanoid.SeatPart:IsA("VehicleSeat") then
+                        local vehicle = humanoid.SeatPart.Parent
+                        local primary = vehicle.PrimaryPart or humanoid.SeatPart
+                        
+                        bodyVelocity.Parent = primary
+                        bodyGyro.Parent = primary
+                        
+                        Rayfield:Notify({Title = "Fly Enabled", Content = "Use W/A/S/D to fly your vehicle!", Duration = 3})
+                        
+                        -- Fly loop
+                        task.spawn(function()
+                            while FlyEnabled do
+                                local moveDir = Vector3.zero
+                                if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + Camera.CFrame.LookVector end
+                                if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - Camera.CFrame.LookVector end
+                                if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - Camera.CFrame.RightVector end
+                                if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + Camera.CFrame.RightVector end
+                                if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDir = moveDir + Vector3.new(0, 1, 0) end
+                                if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then moveDir = moveDir - Vector3.new(0, 1, 0) end
+                                
+                                bodyVelocity.Velocity = moveDir * FlySpeed
+                                bodyGyro.CFrame = Camera.CFrame
+                                task.wait()
+                            end
+                            if bodyVelocity then bodyVelocity:Destroy() end
+                            if bodyGyro then bodyGyro:Destroy() end
+                        end)
+                    else
+                        FlyEnabled = false
+                        Rayfield:Notify({Title = "Fly Failed", Content = "You must be sitting in a vehicle to use Vehicle Fly!", Duration = 3})
+                    end
+                end
+            end,
+        })
+        
+        TrollTab:CreateSlider({
+            Name = "Vehicle Fly Speed",
+            Range = {10, 300},
+            Increment = 5,
+            Suffix = "Spd",
+            CurrentValue = 50,
+            Flag = "FlySpeed",
+            Callback = function(Value)
+                FlySpeed = Value
+            end,
+        })
+
+        TrollTab:CreateSection("Realistic Player Fly")
+
+        local PlayerFlyEnabled = false
+        local PlayerFlySpeed = 50
+        TrollTab:CreateToggle({
+            Name = "Realistic Player Fly",
+            CurrentValue = false,
+            Flag = "PlayerFly",
+            Callback = function(Value)
+                PlayerFlyEnabled = Value
+                local root = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
+                local humanoid = Player.Character and Player.Character:FindFirstChild("Humanoid")
+                
+                if not root then return end
+                
+                if Value then
+                    local bv = Instance.new("BodyVelocity")
+                    bv.Name = "LumoFlyBV"
+                    bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+                    bv.Velocity = Vector3.zero
+                    bv.Parent = root
+                    
+                    local bg = Instance.new("BodyGyro")
+                    bg.Name = "LumoFlyBG"
+                    bg.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+                    bg.CFrame = root.CFrame
+                    bg.Parent = root
+                    
+                    if humanoid then humanoid.PlatformStand = true end
+                    
+                    task.spawn(function()
+                        while PlayerFlyEnabled and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") do
+                            local moveDir = Vector3.zero
+                            local isMoving = false
+                            
+                            if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + Camera.CFrame.LookVector; isMoving = true end
+                            if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - Camera.CFrame.LookVector; isMoving = true end
+                            if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - Camera.CFrame.RightVector; isMoving = true end
+                            if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + Camera.CFrame.RightVector; isMoving = true end
+                            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDir = moveDir + Vector3.new(0, 1, 0); isMoving = true end
+                            if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then moveDir = moveDir - Vector3.new(0, 1, 0); isMoving = true end
+                            
+                            if isMoving then
+                                bv.Velocity = moveDir * PlayerFlySpeed
+                            else
+                                -- Realistic bobbing bit up and bit down
+                                bv.Velocity = Vector3.new(0, math.sin(tick() * 3) * 1.5, 0)
+                            end
+                            
+                            -- Keep player totally upright and casually standing
+                            local look = Camera.CFrame.LookVector
+                            bg.CFrame = CFrame.new(root.Position, root.Position + Vector3.new(look.X, 0, look.Z))
+                            
+                            -- Completely freeze legs and arms so they are perfectly stiff
+                            if humanoid then
+                                humanoid.PlatformStand = true
+                                for _, track in pairs(humanoid:GetPlayingAnimationTracks()) do
+                                    track:Stop()
+                                end
+                            end
+                            
+                            task.wait()
+                        end
+                        if bv then bv:Destroy() end
+                        if bg then bg:Destroy() end
+                        if humanoid then humanoid.PlatformStand = false end
+                    end)
+                else
+                    if humanoid then humanoid:ChangeState(Enum.HumanoidStateType.GettingUp) end
+                    local oldBv = root:FindFirstChild("LumoFlyBV")
+                    local oldBg = root:FindFirstChild("LumoFlyBG")
+                    if oldBv then oldBv:Destroy() end
+                    if oldBg then oldBg:Destroy() end
+                end
+            end,
+        })
+        
+        TrollTab:CreateSlider({
+            Name = "Player Fly Speed",
+            Range = {10, 200},
+            Increment = 1,
+            Suffix = "Spd",
+            CurrentValue = 50,
+            Flag = "PlayerFlySpeed",
+            Callback = function(Value)
+                PlayerFlySpeed = Value
+            end,
+        })
+
+        local DevTab = Window:CreateTab("Developer 🛠️", 4483362458)
+        
+        DevTab:CreateSection("Vehicle & Code Scanners")
+        
+        DevTab:CreateButton({
+            Name = "Copy ALL Vehicles (Workspace + Storage)",
+            Callback = function()
+                local list = "=== WORKSPACE VEHICLES ===\n"
+                local count = 0
+                
+                local vehicleFolder = workspace:FindFirstChild("Vehicles") or workspace
+                for _, v in pairs(vehicleFolder:GetDescendants()) do
+                    if v:IsA("Model") and v:FindFirstChild("DriveSeat") then
+                        list = list .. v.Name .. " (Path: " .. v:GetFullName() .. ")\n"
+                        count = count + 1
+                    end
+                end
+                
+                list = list .. "\n=== REPLICATED STORAGE VEHICLES (UNSPAWNED) ===\n"
+                local rs = game:GetService("ReplicatedStorage")
+                for _, v in pairs(rs:GetDescendants()) do
+                    if v:IsA("Model") then
+                        local pName = v.Parent and v.Parent.Name:lower() or ""
+                        local hasSeat = v:FindFirstChild("DriveSeat") or v:FindFirstChild("VehicleSeat")
+                        local inFolder = (pName:find("vehicle") or pName:find("car") or pName:find("bike")) and v.Parent:IsA("Folder")
+                        
+                        if hasSeat or inFolder then
+                            list = list .. v.Name .. " (Path: " .. v:GetFullName() .. ")\n"
+                            count = count + 1
+                        end
+                    end
+                end
+                
+                pcall(function() setclipboard(list) end)
+                Rayfield:Notify({Title = "Codes Copied!", Content = "Scanned entire game. Copied " .. count .. " vehicle codes/names!", Duration = 5})
+            end,
+        })
+        DevTab:CreateSection("Server-Sided Vehicle Spawner")
+        
+        local selectedBike = "pv503"
+        local bikes = {"AMICA", "pv503", "dt50", "roxi", "manki1", "terpi", "crf450", "tehusse", "cr125", "ktm", "yzi", "ktm125sx2006"}
+        DevTab:CreateDropdown({
+            Name = "Select Vehicle",
+            Options = bikes,
+            CurrentOption = "pv503",
+            Flag = "BikeSelector",
+            Callback = function(Option)
+                if type(Option) == "table" then
+                    selectedBike = Option[1]
+                else
+                    selectedBike = Option
+                end
+            end,
+        })
+        
+        DevTab:CreateButton({
+            Name = "Force-Spawn Vehicle (SERVER-SIDED)",
+            Callback = function()
+                local rs = game:GetService("ReplicatedStorage")
+                local fired = false
+                
+                -- Brute force common spawn remotes based on the F9 leak
+                local possibleNames = {"CustomizeCarEvent", "SpawnVehicle", "Spawn", "SpawnCar", "CarSpawn", "VehicleSpawn", "SpawnBike"}
+                for _, name in pairs(possibleNames) do
+                    local remote = rs:FindFirstChild(name, true)
+                    if remote and remote:IsA("RemoteEvent") then
+                        remote:FireServer(selectedBike)
+                        fired = true
+                    elseif remote and remote:IsA("RemoteFunction") then
+                        task.spawn(function() remote:InvokeServer(selectedBike) end)
+                        fired = true
+                    end
+                end
+                
+                if fired then
+                    Rayfield:Notify({Title = "Sent to Server!", Content = "Attempted to spawn " .. selectedBike .. " for EVERYONE to see!", Duration = 5})
+                else
+                    Rayfield:Notify({Title = "Failed", Content = "Could not find any spawn remotes in ReplicatedStorage.", Duration = 3})
+                end
+            end,
+        })
+        
+        DevTab:CreateSection("Script Decompiler")
+        
+        DevTab:CreateButton({
+            Name = "Decompile & Copy Car Scripts",
+            Callback = function()
+                if not decompile then
+                    Rayfield:Notify({Title = "Error", Content = "Your executor does not support decompiling scripts!", Duration = 5})
+                    return
+                end
+                
+                Rayfield:Notify({Title = "Decompiling...", Content = "Finding Car/Spawn scripts. Game might freeze for a second!", Duration = 4})
+                
+                local codeDump = "=== LUMOHUB SCRIPT DUMP ===\n"
+                local found = 0
+                
+                -- Search PlayerGui and PlayerScripts for relevant scripts
+                for _, v in pairs(Player:GetDescendants()) do
+                    if v:IsA("LocalScript") and (v.Name:lower():find("car") or v.Name:lower():find("spawn") or v.Name:lower():find("shop") or v.Name:lower():find("bike")) then
+                        pcall(function()
+                            local src = decompile(v)
+                            if src and string.len(src) > 10 then
+                                codeDump = codeDump .. "\n\n--- SCRIPT: " .. v:GetFullName() .. " ---\n" .. src
+                                found = found + 1
+                            end
+                        end)
+                        if found >= 3 then break end -- Limit to 3 to prevent clipboard crashing
+                    end
+                end
+                
+                if found > 0 then
+                    pcall(function() setclipboard(codeDump) end)
+                    Rayfield:Notify({Title = "Success!", Content = "Decompiled " .. found .. " scripts and copied to clipboard! Paste it to me.", Duration = 6})
+                else
+                    Rayfield:Notify({Title = "Failed", Content = "Could not find any relevant scripts to decompile.", Duration = 4})
+                end
+            end,
+        })
+
+        CreateProtectionsTab(Window)
         Rayfield:LoadConfiguration()
     else
-        local success, info = pcall(function() return game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId) end)
-        local GameName = (success and info) and info.Name or "Unknown Game"
-
         if string.find(string.lower(GameName), "garden") then
             local Window = Rayfield:CreateWindow({
                 Name = "LumoHub Premium | " .. GameName,
@@ -232,9 +926,9 @@ local function LoadLumoHub(activeKey, authGui)
             })
 
             local GardenTab = Window:CreateTab("Grow a Garden 🌱", 4483362458)
-            local MovementTab = Window:CreateTab("Movement", 4483362458)
-            local TeleportTab = Window:CreateTab("Teleports", 4483362458)
-            local SettingsTab = Window:CreateTab("Settings", 4483362458)
+            local MovementTab = Window:CreateTab("Movement 🏃", 4483362458)
+            local TeleportTab = Window:CreateTab("Teleports 📍", 4483362458)
+            local SettingsTab = Window:CreateTab("Settings ⚙️", 4483362458)
 
             GardenTab:CreateSection("Economy & Selling")
 
@@ -425,12 +1119,509 @@ local function LoadLumoHub(activeKey, authGui)
                 end,
             })
 
-
-
+            CreateProtectionsTab(Window)
             Rayfield:LoadConfiguration()
             
-        else
-            -- Universal / Streetz War 2
+        elseif game.PlaceId == 142823291 or GameName:lower():find("murder mystery 2") then
+        local Window = Rayfield:CreateWindow({
+            Name = "LumoHub 🔪 | Murder Mystery 2",
+            LoadingTitle = "LumoHub Premium",
+            LoadingSubtitle = "by LumoHub Team",
+            ConfigurationSaving = {
+                Enabled = false,
+                FolderName = "LumoHubConfig",
+                FileName = "MM2"
+            },
+            Discord = {
+                Enabled = true,
+                Invite = "qkCRXBeEpB",
+                RememberJoins = true
+            },
+            KeySystem = false
+        })
+
+        Rayfield:Notify({
+            Title = "Game Detected",
+            Content = "Murder Mystery 2 scripts loaded!",
+            Duration = 3,
+            Image = 4483362458,
+        })
+        
+        local RolesTab = Window:CreateTab("Roles & ESP 👁️", 4483362458)
+        local CombatTab = Window:CreateTab("Combat & Auto ⚔️", 4483345998)
+        local MovementTab = Window:CreateTab("Movement 🏃", 4483362458)
+        local TeleportTab = Window:CreateTab("Teleports 📍", 4483362458)
+        local NotifyTab = Window:CreateTab("Notifications 🔔", 4483345998)
+        
+        local MM2_NoclipToggle
+        local MM2_AutoEvadeToggle
+
+        RolesTab:CreateSection("Role ESP")
+        
+        local espLoop
+        local function UpdateRoleESP()
+            for _, v in pairs(game.Players:GetPlayers()) do
+                if v ~= Player and v.Character and v.Character:FindFirstChild("Head") then
+                    local highlight = v.Character:FindFirstChild("MM2ESP")
+                    if not highlight then
+                        highlight = Instance.new("Highlight")
+                        highlight.Name = "MM2ESP"
+                        highlight.Parent = v.Character
+                        highlight.FillTransparency = 0.5
+                        highlight.OutlineTransparency = 0.2
+                    end
+                    
+                    local bp = v.Backpack
+                    local char = v.Character
+                    local isMurderer = (bp:FindFirstChild("Knife") or char:FindFirstChild("Knife"))
+                    local isSheriff = (bp:FindFirstChild("Gun") or char:FindFirstChild("Gun"))
+                    
+                    if isMurderer then
+                        highlight.FillColor = Color3.fromRGB(255, 0, 0)
+                        highlight.OutlineColor = Color3.fromRGB(200, 0, 0)
+                    elseif isSheriff then
+                        highlight.FillColor = Color3.fromRGB(0, 0, 255)
+                        highlight.OutlineColor = Color3.fromRGB(0, 0, 200)
+                    else
+                        highlight.FillColor = Color3.fromRGB(0, 255, 0)
+                        highlight.OutlineColor = Color3.fromRGB(0, 200, 0)
+                    end
+                end
+            end
+        end
+
+        RolesTab:CreateToggle({
+            Name = "Role ESP (Murderer=Red, Sheriff=Blue)",
+            CurrentValue = false,
+            Flag = "MM2_ESP",
+            Callback = function(Value)
+                if Value then
+                    espLoop = game:GetService("RunService").RenderStepped:Connect(function()
+                        pcall(UpdateRoleESP)
+                    end)
+                    Rayfield:Notify({Title = "ESP Enabled", Content = "Tracking roles dynamically.", Duration = 2})
+                else
+                    if espLoop then espLoop:Disconnect() end
+                    for _, v in pairs(game.Players:GetPlayers()) do
+                        if v.Character and v.Character:FindFirstChild("MM2ESP") then
+                            v.Character.MM2ESP:Destroy()
+                        end
+                    end
+                end
+            end,
+        })
+        
+        CombatTab:CreateSection("Auto Win & Guns")
+        
+        local autoGrabGun = false
+        local autoGrabConn
+        CombatTab:CreateToggle({
+            Name = "Auto Grab Dropped Gun",
+            CurrentValue = false,
+            Flag = "AutoGrabGun",
+            Callback = function(Value)
+                autoGrabGun = Value
+                if Value then
+                    autoGrabConn = workspace.DescendantAdded:Connect(function(descendant)
+                        if descendant.Name == "GunDrop" and autoGrabGun then
+                            task.wait(0.1) -- Wait for part to fully spawn in workspace
+                            if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
+                                local oldPos = Player.Character.HumanoidRootPart.CFrame
+                                Player.Character.HumanoidRootPart.CFrame = descendant.CFrame
+                                task.wait(0.2)
+                                if firetouchinterest then
+                                    pcall(function()
+                                        firetouchinterest(Player.Character.HumanoidRootPart, descendant, 0)
+                                        task.wait(0.1)
+                                        firetouchinterest(Player.Character.HumanoidRootPart, descendant, 1)
+                                    end)
+                                end
+                                task.wait(0.2)
+                                Player.Character.HumanoidRootPart.CFrame = oldPos
+                                Rayfield:Notify({Title = "Gun Auto-Grabbed", Content = "You are now the Sheriff!", Duration = 3})
+                            end
+                        end
+                    end)
+                else
+                    if autoGrabConn then autoGrabConn:Disconnect() end
+                end
+            end,
+        })
+
+        local autoEvade = false
+        local evadeLoop
+        MM2_AutoEvadeToggle = CombatTab:CreateToggle({
+            Name = "Anti-Murderer (Auto Evade)",
+            CurrentValue = false,
+            Flag = "AutoEvade",
+            Callback = function(Value)
+                autoEvade = Value
+                if Value then
+                    evadeLoop = game:GetService("RunService").Heartbeat:Connect(function()
+                        if not Player.Character or not Player.Character:FindFirstChild("HumanoidRootPart") then return end
+                        
+                        local murderer = nil
+                        for _, v in pairs(game.Players:GetPlayers()) do
+                            if v ~= Player and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
+                                if v.Character:FindFirstChild("Knife") or (v.Backpack and v.Backpack:FindFirstChild("Knife")) then
+                                    murderer = v
+                                    break
+                                end
+                            end
+                        end
+                        
+                        if murderer and murderer.Character and murderer.Character:FindFirstChild("HumanoidRootPart") then
+                            local myPos = Player.Character.HumanoidRootPart.Position
+                            local murdPos = murderer.Character.HumanoidRootPart.Position
+                            local dist = (myPos - murdPos).Magnitude
+                            
+                            -- If murderer gets within 15 studs, blink away
+                            if dist < 15 then
+                                local dir = (myPos - murdPos).Unit
+                                if dir.X ~= dir.X then dir = Vector3.new(0, 1, 0) end -- Fallback if perfectly overlapping
+                                
+                                -- Teleport 30 studs in the opposite direction
+                                Player.Character.HumanoidRootPart.CFrame = Player.Character.HumanoidRootPart.CFrame + (dir * 30)
+                            end
+                        end
+                    end)
+                else
+                    if evadeLoop then evadeLoop:Disconnect() end
+                end
+            end,
+        })
+
+        
+        CombatTab:CreateButton({
+            Name = "Grab Dropped Gun",
+            Callback = function()
+                local gunDrop = workspace:FindFirstChild("GunDrop", true)
+                if gunDrop and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
+                    local oldPos = Player.Character.HumanoidRootPart.CFrame
+                    
+                    -- Teleport to gun
+                    Player.Character.HumanoidRootPart.CFrame = gunDrop.CFrame
+                    task.wait(0.2)
+                    
+                    -- Try to fire touch interest just in case CFrame isn't enough
+                    if firetouchinterest then
+                        pcall(function()
+                            firetouchinterest(Player.Character.HumanoidRootPart, gunDrop, 0)
+                            task.wait(0.1)
+                            firetouchinterest(Player.Character.HumanoidRootPart, gunDrop, 1)
+                        end)
+                    end
+                    
+                    task.wait(0.2)
+                    -- Teleport back
+                    Player.Character.HumanoidRootPart.CFrame = oldPos
+                    Rayfield:Notify({Title = "Gun Grabbed", Content = "Teleported to the dropped gun and returned!", Duration = 3})
+                else
+                    Rayfield:Notify({Title = "Not Found", Content = "Gun hasn't been dropped or doesn't exist.", Duration = 3})
+                end
+            end,
+        })
+        
+        local function AttemptShoot(targetPlayer)
+            if MM2_NoclipToggle then pcall(function() MM2_NoclipToggle:Set(false) end) end
+            if MM2_AutoEvadeToggle then pcall(function() MM2_AutoEvadeToggle:Set(false) end) end
+            if not targetPlayer or not targetPlayer.Character or not targetPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
+            if not Player.Character or not Player.Character:FindFirstChild("Gun") then return end
+            
+            local gun = Player.Character.Gun
+            local targetHRP = targetPlayer.Character.HumanoidRootPart
+            local myHRP = Player.Character.HumanoidRootPart
+            
+            local VirtualInputManager = game:GetService("VirtualInputManager")
+            
+            -- Teleport 3 studs behind them
+            myHRP.CFrame = targetHRP.CFrame * CFrame.new(0, 0, 3)
+            
+            -- Look exactly at them
+            workspace.CurrentCamera.CFrame = CFrame.lookAt(workspace.CurrentCamera.CFrame.Position, targetHRP.Position)
+            
+            -- CRITICAL FIX: You MUST wait a tiny split-second after teleporting.
+            -- If you click on the exact same frame you teleport, the game thinks your gun is still at the old location and the bullet hits the wall!
+            task.wait(0.1)
+            
+            -- Force the gun to shoot via script
+            gun:Activate()
+            
+            -- Backup simulated click just in case
+            local center = workspace.CurrentCamera.ViewportSize / 2
+            VirtualInputManager:SendMouseButtonEvent(center.X, center.Y, 0, true, game, 1)
+            task.wait(0.05)
+            VirtualInputManager:SendMouseButtonEvent(center.X, center.Y, 0, false, game, 1)
+        end
+
+        local function AttemptKill(targetPlayer)
+            if MM2_NoclipToggle then pcall(function() MM2_NoclipToggle:Set(false) end) end
+            if MM2_AutoEvadeToggle then pcall(function() MM2_AutoEvadeToggle:Set(false) end) end
+            if not targetPlayer or not targetPlayer.Character or not targetPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
+            if not Player.Character or not Player.Character:FindFirstChild("Knife") then return end
+            
+            local knife = Player.Character.Knife
+            local handle = knife:FindFirstChild("Handle")
+            local targetHRP = targetPlayer.Character.HumanoidRootPart
+            local myHRP = Player.Character.HumanoidRootPart
+            
+            local VirtualInputManager = game:GetService("VirtualInputManager")
+            
+            local attempts = 0
+            -- Keep trying until they are dead (Max 40 attempts / 2 seconds)
+            while targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("Humanoid") and targetPlayer.Character.Humanoid.Health > 0 and attempts < 40 do
+                attempts = attempts + 1
+                local currentHRP = targetPlayer.Character:FindFirstChild("HumanoidRootPart")
+                if not currentHRP then break end
+                
+                -- Teleport EXACTLY inside them to guarantee the knife hitbox connects
+                myHRP.CFrame = currentHRP.CFrame
+                
+                knife:Activate()
+                local center = workspace.CurrentCamera.ViewportSize / 2
+                VirtualInputManager:SendMouseButtonEvent(center.X, center.Y, 0, true, game, 1)
+                VirtualInputManager:SendMouseButtonEvent(center.X, center.Y, 0, false, game, 1)
+                
+                if handle and firetouchinterest then
+                    pcall(function()
+                        firetouchinterest(handle, currentHRP, 0)
+                        firetouchinterest(handle, currentHRP, 1)
+                    end)
+                end
+                task.wait(0.05)
+            end
+        end
+
+        CombatTab:CreateButton({
+            Name = 'Kill All (Requires Murderer) <font color="#aaaaaa" size="13">[Working Properly]</font>',
+            Callback = function()
+                if Player.Character and Player.Character:FindFirstChild("Knife") then
+                    for _, v in pairs(game.Players:GetPlayers()) do
+                        if v ~= Player then
+                            -- Only attempt to kill if they are alive
+                            if v.Character and v.Character:FindFirstChild("Humanoid") and v.Character.Humanoid.Health > 0 then
+                                AttemptKill(v)
+                            end
+                        end
+                    end
+                else
+                    Rayfield:Notify({Title = "Missing Knife", Content = "You must be the murderer and equip your knife first!", Duration = 3})
+                end
+            end,
+        })
+        
+        CombatTab:CreateButton({
+            Name = 'Kill Sheriff (Requires Knife) <font color="#aaaaaa" size="13">[Working Properly]</font>',
+            Callback = function()
+                if Player.Character and Player.Character:FindFirstChild("Knife") then
+                    local sheriff = nil
+                    for _, v in pairs(game.Players:GetPlayers()) do
+                        if v ~= Player and v.Character and v.Backpack then
+                            -- Check if they have a Gun in backpack or character
+                            if v.Character:FindFirstChild("Gun") or v.Backpack:FindFirstChild("Gun") then
+                                sheriff = v
+                                break
+                            end
+                        end
+                    end
+                    
+                    if sheriff and sheriff.Character and sheriff.Character:FindFirstChild("Humanoid") and sheriff.Character.Humanoid.Health > 0 then
+                        Rayfield:Notify({Title = "Targeting", Content = "Teleporting to the Sheriff...", Duration = 2})
+                        AttemptKill(sheriff)
+                    else
+                        Rayfield:Notify({Title = "Not Found", Content = "Could not locate a living Sheriff.", Duration = 3})
+                    end
+                else
+                    Rayfield:Notify({Title = "Missing Knife", Content = "You must be the murderer and equip your knife first!", Duration = 3})
+                end
+            end,
+        })
+        
+        CombatTab:CreateButton({
+            Name = 'Kill Murderer (Requires Gun) <font color="#aaaaaa" size="13">[Might Miss]</font>',
+            Callback = function()
+                if Player.Character and Player.Character:FindFirstChild("Gun") then
+                    local murderer = nil
+                    for _, v in pairs(game.Players:GetPlayers()) do
+                        if v ~= Player and v.Character and v.Backpack then
+                            if v.Character:FindFirstChild("Knife") or v.Backpack:FindFirstChild("Knife") then
+                                murderer = v
+                                break
+                            end
+                        end
+                    end
+                    
+                    if murderer and murderer.Character and murderer.Character:FindFirstChild("Humanoid") and murderer.Character.Humanoid.Health > 0 then
+                        Rayfield:Notify({Title = "Targeting", Content = "Teleporting to the Murderer...", Duration = 2})
+                        AttemptShoot(murderer)
+                    else
+                        Rayfield:Notify({Title = "Not Found", Content = "Could not locate a living Murderer.", Duration = 3})
+                    end
+                else
+                    Rayfield:Notify({Title = "Missing Gun", Content = "You must have the gun equipped first!", Duration = 3})
+                end
+            end,
+        })
+
+
+        local noclipLoop
+        MovementTab:CreateSection("Physics Bypasses")
+        MM2_NoclipToggle = MovementTab:CreateToggle({
+            Name = "Noclip (Walk through walls)",
+            CurrentValue = false,
+            Flag = "MM2_Noclip",
+            Callback = function(Value)
+                if Value then
+                    noclipLoop = game:GetService("RunService").Stepped:Connect(function()
+                        if Player.Character then
+                            for _, v in pairs(Player.Character:GetDescendants()) do
+                                if v:IsA("BasePart") and v.CanCollide then
+                                    v.CanCollide = false
+                                end
+                            end
+                        end
+                    end)
+                    Rayfield:Notify({Title = "Noclip Enabled", Content = "You can now walk through walls.", Duration = 2})
+                else
+                    if noclipLoop then noclipLoop:Disconnect() end
+                    Rayfield:Notify({Title = "Noclip Disabled", Content = "Collisions restored.", Duration = 2})
+                end
+            end,
+        })
+
+        MovementTab:CreateSection("Realistic Player Fly")
+
+        local PlayerFlyEnabled = false
+        local PlayerFlySpeed = 50
+        MovementTab:CreateToggle({
+            Name = "Realistic Player Fly",
+            CurrentValue = false,
+            Flag = "MM2_PlayerFly",
+            Callback = function(Value)
+                PlayerFlyEnabled = Value
+                local root = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
+                local humanoid = Player.Character and Player.Character:FindFirstChild("Humanoid")
+                
+                if not root then return end
+                
+                if Value then
+                    local bv = Instance.new("BodyVelocity")
+                    bv.Name = "LumoFlyBV"
+                    bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+                    bv.Velocity = Vector3.zero
+                    bv.Parent = root
+                    
+                    local bg = Instance.new("BodyGyro")
+                    bg.Name = "LumoFlyBG"
+                    bg.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+                    bg.CFrame = root.CFrame
+                    bg.Parent = root
+                    
+                    if humanoid then humanoid.PlatformStand = true end
+                    
+                    task.spawn(function()
+                        while PlayerFlyEnabled and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") do
+                            local moveDir = Vector3.zero
+                            local isMoving = false
+                            
+                            if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + Camera.CFrame.LookVector; isMoving = true end
+                            if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - Camera.CFrame.LookVector; isMoving = true end
+                            if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - Camera.CFrame.RightVector; isMoving = true end
+                            if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + Camera.CFrame.RightVector; isMoving = true end
+                            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDir = moveDir + Vector3.new(0, 1, 0); isMoving = true end
+                            if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then moveDir = moveDir - Vector3.new(0, 1, 0); isMoving = true end
+                            
+                            if isMoving then
+                                bv.Velocity = moveDir * PlayerFlySpeed
+                            else
+                                -- Realistic bobbing bit up and bit down
+                                bv.Velocity = Vector3.new(0, math.sin(tick() * 3) * 1.5, 0)
+                            end
+                            
+                            -- Keep player totally upright and casually standing
+                            local look = Camera.CFrame.LookVector
+                            bg.CFrame = CFrame.new(root.Position, root.Position + Vector3.new(look.X, 0, look.Z))
+                            
+                            -- Completely freeze legs and arms so they are perfectly stiff
+                            if humanoid then
+                                humanoid.PlatformStand = true
+                                for _, track in pairs(humanoid:GetPlayingAnimationTracks()) do
+                                    track:Stop()
+                                end
+                            end
+                            
+                            task.wait()
+                        end
+                        if bv then bv:Destroy() end
+                        if bg then bg:Destroy() end
+                        if humanoid then humanoid.PlatformStand = false end
+                    end)
+                else
+                    if humanoid then humanoid:ChangeState(Enum.HumanoidStateType.GettingUp) end
+                    local oldBv = root:FindFirstChild("LumoFlyBV")
+                    local oldBg = root:FindFirstChild("LumoFlyBG")
+                    if oldBv then oldBv:Destroy() end
+                    if oldBg then oldBg:Destroy() end
+                end
+            end,
+        })
+        
+        MovementTab:CreateSlider({
+            Name = "Player Fly Speed",
+            Range = {10, 200},
+            Increment = 1,
+            Suffix = "Spd",
+            CurrentValue = 50,
+            Flag = "MM2_PlayerFlySpeed",
+            Callback = function(Value)
+                PlayerFlySpeed = Value
+            end,
+        })
+
+        local notifyGunDrop = false
+        local gunDropConn
+        
+        NotifyTab:CreateSection("Game Events")
+        NotifyTab:CreateToggle({
+            Name = "Notify When Sheriff Dies (Gun Drop)",
+            CurrentValue = false,
+            Flag = "NotifyGunDrop",
+            Callback = function(Value)
+                notifyGunDrop = Value
+                if Value then
+                    gunDropConn = workspace.DescendantAdded:Connect(function(descendant)
+                        if descendant.Name == "GunDrop" and notifyGunDrop then
+                            Rayfield:Notify({
+                                Title = "🚨 SHERIFF DIED! 🚨",
+                                Content = "The gun has been dropped! Go to Combat Tab and use 'Grab Dropped Gun'.",
+                                Duration = 8,
+                                Image = 4483345998
+                            })
+                        end
+                    end)
+                else
+                    if gunDropConn then gunDropConn:Disconnect() end
+                end
+            end,
+        })
+
+        TeleportTab:CreateSection("Map Locations")
+        TeleportTab:CreateButton({
+            Name = "Teleport to Lobby",
+            Callback = function()
+                if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
+                    Player.Character.HumanoidRootPart.CFrame = CFrame.new(-109.5, 138, 38)
+                    Rayfield:Notify({Title = "Teleported", Content = "Returned to Lobby.", Duration = 2})
+                end
+            end,
+        })
+
+
+        CreateProtectionsTab(Window)
+        Rayfield:LoadConfiguration()
+
+    elseif GameName:lower():find("streetz war") or GameName:lower():find("universal") then
+            -- Streetz War 2
             local Window = Rayfield:CreateWindow({
                 Name = "LumoHub Premium | " .. GameName,
             Icon = 0, -- Removed the original icon so it's perfectly clean
@@ -456,13 +1647,13 @@ local function LoadLumoHub(activeKey, authGui)
 -- ──────────────────────────────────────────────────────────────
 -- TABS
 -- ──────────────────────────────────────────────────────────────
-local ESPTab = Window:CreateTab("ESP", 4483362458)
-local AimbotTab = Window:CreateTab("Aimbot", 4483345998)
-local PlayerTab = Window:CreateTab("Player", 4483362458)
-local GunTab = Window:CreateTab("Gun Spawn", 4483345998)
-local MovementTab = Window:CreateTab("Movement", 4483362458)
-local TeleportTab = Window:CreateTab("Teleports", 4483345998)
-local SettingsTab = Window:CreateTab("Settings", 4483362458)
+local ESPTab = Window:CreateTab("ESP 👁️", 4483362458)
+local AimbotTab = Window:CreateTab("Aimbot 🎯", 4483345998)
+local PlayerTab = Window:CreateTab("Player 👤", 4483362458)
+local GunTab = Window:CreateTab("Gun Spawn 🔫", 4483345998)
+local MovementTab = Window:CreateTab("Movement 🏃", 4483362458)
+local TeleportTab = Window:CreateTab("Teleports 📍", 4483345998)
+local SettingsTab = Window:CreateTab("Settings ⚙️", 4483362458)
 
 -- ──────────────────────────────────────────────────────────────
 -- ESP IMPLEMENTATION
@@ -1171,7 +2362,49 @@ SettingsTab:CreateButton({
     end,
 })
 
-Rayfield:LoadConfiguration()
+        CreateProtectionsTab(Window)
+        Rayfield:LoadConfiguration()
+
+    else
+        -- Unsupported Game Fallback
+        local Window = Rayfield:CreateWindow({
+            Name = "LumoHub ❌ | Unsupported",
+            LoadingTitle = "LumoHub Premium",
+            LoadingSubtitle = "Game Not Supported",
+            ConfigurationSaving = { Enabled = false },
+            Discord = {
+                Enabled = true,
+                Invite = "qkCRXBeEpB",
+                RememberJoins = true
+            },
+            KeySystem = false
+        })
+        
+        Rayfield:Notify({
+            Title = "Game Not Supported",
+            Content = "LumoHub doesn't have specific cheats for this game yet.",
+            Duration = 5,
+            Image = 4483362458
+        })
+        
+        local MainTab = Window:CreateTab("Unsupported ❌", 4483362458)
+        MainTab:CreateSection("Unsupported")
+        MainTab:CreateParagraph({
+            Title = "Game Not Supported",
+            Content = "We don't have a dedicated cheat for " .. GameName .. " yet.\n\nYou can see all of our supported games from the Discord!"
+        })
+        
+        MainTab:CreateButton({
+            Name = "Copy Discord Link",
+            Callback = function()
+                if setclipboard then
+                    setclipboard("https://discord.gg/qkCRXBeEpB")
+                    Rayfield:Notify({Title = "Copied!", Content = "Discord link copied to clipboard.", Duration = 3, Image = 4483362458})
+                end
+            end,
+        })
+        
+        Rayfield:LoadConfiguration()
     end
 end
 
@@ -1273,10 +2506,15 @@ local function CheckSavedKey()
     pcall(function() saved = readfile("LumoHubKeyFile.txt") end)
     if saved and saved ~= "" then
         saved = string.gsub(saved, "%s+", "")
-        for _, k in ipairs(validKeys) do
-            if k == saved then
-                return saved
-            end
+        local HWID = ""
+        pcall(function() HWID = game:GetService("RbxAnalyticsService"):GetClientId() end)
+        
+        local success, result = pcall(function()
+            return game:HttpGet("https://lumohub-bot.onrender.com/verify?key=" .. saved .. "&hwid=" .. HWID)
+        end)
+        
+        if success and result == "VALID" then
+            return saved
         end
     end
     return nil
@@ -1288,13 +2526,25 @@ if savedValidKey then
     LoadLumoHub(savedValidKey)
 else
     -- Build Custom UI
+    local oldGui = game:GetService("CoreGui"):FindFirstChild("LumoHubAuth") or (Player:WaitForChild("PlayerGui") and Player.PlayerGui:FindFirstChild("LumoHubAuth"))
+    if oldGui then oldGui:Destroy() end
+
     local ScreenGui = Instance.new("ScreenGui")
     ScreenGui.Name = "LumoHubAuth"
     ScreenGui.ResetOnSpawn = false
     ScreenGui.DisplayOrder = 100 -- Ensure it covers Rayfield splash screen
+    ScreenGui.IgnoreGuiInset = true -- Ensure it covers the whole screen
     
     local success = pcall(function() ScreenGui.Parent = game:GetService("CoreGui") end)
     if not success then ScreenGui.Parent = Player:WaitForChild("PlayerGui") end
+
+    -- Background frame to darken the blurred screen
+    local BackgroundDim = Instance.new("Frame")
+    BackgroundDim.Size = UDim2.new(1, 0, 1, 0)
+    BackgroundDim.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    BackgroundDim.BackgroundTransparency = 0.5
+    BackgroundDim.BorderSizePixel = 0
+    BackgroundDim.Parent = ScreenGui
 
     local MainFrame = Instance.new("Frame")
     MainFrame.Size = UDim2.new(0, 420, 0, 260)
@@ -1409,50 +2659,36 @@ else
             return
         end
 
-        local isValid = false
+        Status.TextColor3 = Color3.fromRGB(254, 204, 35)
+        Status.Text = "Verifying HWID..."
+
+        local HWID = ""
+        pcall(function() HWID = game:GetService("RbxAnalyticsService"):GetClientId() end)
         
-        -- 1) Check against the keys we fetched when the script was injected
-        for _, k in ipairs(validKeys) do
-            if k == entered then
-                isValid = true
-                break
+        local success, result = pcall(function()
+            return game:HttpGet("https://lumohub-bot.onrender.com/verify?key=" .. entered .. "&hwid=" .. HWID)
+        end)
+        
+        if success then
+            if result == "VALID" then
+                Status.TextColor3 = Color3.fromRGB(100, 255, 100)
+                Status.Text = "Key Validated! Loading LumoHub..."
+                pcall(function() writefile("LumoHubKeyFile.txt", entered) end)
+                
+                task.wait(0.5)
+                MainFrame.Visible = false
+                
+                LoadLumoHub(entered, ScreenGui)
+            elseif result == "INVALID_HWID" then
+                Status.TextColor3 = Color3.fromRGB(255, 100, 100)
+                Status.Text = "Key claimed by another device!"
+            else
+                Status.TextColor3 = Color3.fromRGB(255, 100, 100)
+                Status.Text = "Invalid or Expired Key!"
             end
-        end
-
-        -- 2) If not found, fetch fresh keys! (in case they generated it AFTER injecting)
-        if not isValid then
-            Status.TextColor3 = Color3.fromRGB(254, 204, 35)
-            Status.Text = "Fetching fresh keys..."
-            
-            local success, rawKeys = pcall(function()
-                return game:HttpGet(KEY_URL)
-            end)
-            
-            if success and rawKeys ~= "NO_VALID_KEYS" then
-                for k in string.gmatch(rawKeys, "[^\r\n]+") do
-                    local cleaned = string.gsub(k, "%s+", "")
-                    if cleaned == entered then
-                        isValid = true
-                        table.insert(validKeys, entered) -- Save it internally so expiration works
-                        break
-                    end
-                end
-            end
-        end
-
-        if isValid then
-            Status.TextColor3 = Color3.fromRGB(100, 255, 100)
-            Status.Text = "Key Validated! Loading LumoHub..."
-            pcall(function() writefile("LumoHubKeyFile.txt", entered) end)
-            
-            task.wait(0.5)
-            MainFrame.Visible = false
-            
-            -- Pass the ScreenGui to LoadLumoHub so it destroys it when done
-            LoadLumoHub(entered, ScreenGui)
         else
             Status.TextColor3 = Color3.fromRGB(255, 100, 100)
-            Status.Text = "Invalid or Expired Key!"
+            Status.Text = "Failed to connect to verification server."
         end
     end)
 end
