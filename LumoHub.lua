@@ -1405,16 +1405,23 @@ PlayerTab:CreateToggle({
     end,
 })
 
-PlayerTab:CreateButton({
+PlayerTab:CreateInput({
     Name = "Spoof Level (Client Side Only)",
-    Callback = function()
+    PlaceholderText = "Enter desired level...",
+    RemoveTextAfterFocusLost = false,
+    Callback = function(Text)
+        local num = tonumber(Text)
+        if not num then
+            Rayfield:Notify({Title = "Invalid Input", Content = "Please enter a valid number.", Duration = 2})
+            return
+        end
         pcall(function()
             local leaderstats = Player:FindFirstChild("leaderstats")
             if leaderstats then
                 local level = leaderstats:FindFirstChild("Level") or leaderstats:FindFirstChild("level")
                 if level then
-                    level.Value = 9999
-                    Rayfield:Notify({Title = "Level Spoofed!", Content = "Your level is now 9999. Note: Others cannot see this as it is server-protected.", Duration = 4})
+                    level.Value = num
+                    Rayfield:Notify({Title = "Level Spoofed!", Content = "Your level is now " .. tostring(num) .. ". Note: Others cannot see this.", Duration = 4})
                 else
                     Rayfield:Notify({Title = "Error", Content = "Could not find Level stat.", Duration = 2})
                 end
