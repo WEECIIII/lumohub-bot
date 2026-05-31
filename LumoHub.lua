@@ -493,12 +493,14 @@ local function LoadLumoHub(activeKey, authGui)
             Flag = "MM2_ESP",
             Callback = function(Value)
                 if Value then
-                    espLoop = game:GetService("RunService").RenderStepped:Connect(function()
+                    espLoop = game:GetService("RunService").RenderStepped:Connect(function(...) end) -- dummy
+                    if _G.MM2_ESP then _G.MM2_ESP:Disconnect() end
+                    _G.MM2_ESP = game:GetService("RunService").RenderStepped:Connect(function()
                         pcall(UpdateRoleESP)
                     end)
                     Rayfield:Notify({Title = "ESP Enabled", Content = "Tracking roles dynamically.", Duration = 2})
                 else
-                    if espLoop then espLoop:Disconnect() end
+                    if _G.MM2_ESP then _G.MM2_ESP:Disconnect() end
                     for _, v in pairs(game.Players:GetPlayers()) do
                         if v.Character and v.Character:FindFirstChild("MM2ESP") then
                             v.Character.MM2ESP:Destroy()
@@ -519,7 +521,8 @@ local function LoadLumoHub(activeKey, authGui)
             Callback = function(Value)
                 autoGrabGun = Value
                 if Value then
-                    autoGrabConn = workspace.DescendantAdded:Connect(function(descendant)
+                    if _G.MM2_AutoGrab then _G.MM2_AutoGrab:Disconnect() end
+                    _G.MM2_AutoGrab = workspace.DescendantAdded:Connect(function(descendant)
                         if descendant.Name == "GunDrop" and autoGrabGun then
                             task.wait(0.1) -- Wait for part to fully spawn in workspace
                             if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
@@ -540,7 +543,7 @@ local function LoadLumoHub(activeKey, authGui)
                         end
                     end)
                 else
-                    if autoGrabConn then autoGrabConn:Disconnect() end
+                    if _G.MM2_AutoGrab then _G.MM2_AutoGrab:Disconnect() end
                 end
             end,
         })
@@ -554,7 +557,8 @@ local function LoadLumoHub(activeKey, authGui)
             Callback = function(Value)
                 autoEvade = Value
                 if Value then
-                    evadeLoop = game:GetService("RunService").Heartbeat:Connect(function()
+                    if _G.MM2_Evade then _G.MM2_Evade:Disconnect() end
+                    _G.MM2_Evade = game:GetService("RunService").Heartbeat:Connect(function()
                         if not Player.Character or not Player.Character:FindFirstChild("HumanoidRootPart") then return end
                         
                         local murderer = nil
@@ -583,7 +587,7 @@ local function LoadLumoHub(activeKey, authGui)
                         end
                     end)
                 else
-                    if evadeLoop then evadeLoop:Disconnect() end
+                    if _G.MM2_Evade then _G.MM2_Evade:Disconnect() end
                 end
             end,
         })
@@ -769,7 +773,8 @@ local function LoadLumoHub(activeKey, authGui)
             Flag = "MM2_Noclip",
             Callback = function(Value)
                 if Value then
-                    noclipLoop = game:GetService("RunService").Stepped:Connect(function()
+                    if _G.MM2_Noclip then _G.MM2_Noclip:Disconnect() end
+                    _G.MM2_Noclip = game:GetService("RunService").Stepped:Connect(function()
                         if Player.Character then
                             for _, v in pairs(Player.Character:GetDescendants()) do
                                 if v:IsA("BasePart") and v.CanCollide then
@@ -780,7 +785,7 @@ local function LoadLumoHub(activeKey, authGui)
                     end)
                     Rayfield:Notify({Title = "Noclip Enabled", Content = "You can now walk through walls.", Duration = 2})
                 else
-                    if noclipLoop then noclipLoop:Disconnect() end
+                    if _G.MM2_Noclip then _G.MM2_Noclip:Disconnect() end
                     Rayfield:Notify({Title = "Noclip Disabled", Content = "Collisions restored.", Duration = 2})
                 end
             end,
@@ -886,7 +891,8 @@ local function LoadLumoHub(activeKey, authGui)
             Callback = function(Value)
                 notifyGunDrop = Value
                 if Value then
-                    gunDropConn = workspace.DescendantAdded:Connect(function(descendant)
+                    if _G.MM2_GunDrop then _G.MM2_GunDrop:Disconnect() end
+                    _G.MM2_GunDrop = workspace.DescendantAdded:Connect(function(descendant)
                         if descendant.Name == "GunDrop" and notifyGunDrop then
                             Rayfield:Notify({
                                 Title = "🚨 SHERIFF DIED! 🚨",
@@ -897,7 +903,7 @@ local function LoadLumoHub(activeKey, authGui)
                         end
                     end)
                 else
-                    if gunDropConn then gunDropConn:Disconnect() end
+                    if _G.MM2_GunDrop then _G.MM2_GunDrop:Disconnect() end
                 end
             end,
         })
@@ -1115,7 +1121,7 @@ for _, p in ipairs(Players:GetPlayers()) do if p ~= Player then ESP:SetupPlayer(
 table.insert(_G.LumoESP_Conns, Players.PlayerAdded:Connect(function(p) if p ~= Player then ESP:SetupPlayer(p) end end))
 table.insert(_G.LumoESP_Conns, Players.PlayerRemoving:Connect(function(p) ESP:ClearDrawings(p) end))
 
-table.insert(_G.LumoESP_Conns, RunService.RenderStepped:Connect(function()
+table.insert(_G.LumoESP_Conns, table.insert(_G.LumoHub_Connections, RunService.RenderStepped:Connect(function()
     if ESP.Enabled then ESP:Update() end
 end))
 
@@ -1441,7 +1447,8 @@ local function enableGrabTools()
         end
     end
     if grabtoolsFunc then grabtoolsFunc:Disconnect() end
-    grabtoolsFunc = workspace.ChildAdded:Connect(function(child)
+    grabtoolsFunc = workspace.ChildAdded:Connect(function() end)
+    table.insert(_G.LumoHub_Connections, workspace.ChildAdded:Connect(function(child)
         local humanoid = Player.Character and Player.Character:FindFirstChildOfClass("Humanoid")
         if humanoid and child:IsA("BackpackItem") and child:FindFirstChild("Handle") then
             task.spawn(function()
