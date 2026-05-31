@@ -1033,6 +1033,7 @@ function ESP:Update()
         
         -- Check if character is actually in the workspace and alive
         if d and player ~= Players.LocalPlayer and char and char.Parent and hrp and head and hum and hum.Health > 0 then
+            pcall(function()
             local rootPos, onScreen = currentCamera:WorldToViewportPoint(hrp.Position)
             
             if onScreen then
@@ -1084,8 +1085,11 @@ function ESP:Update()
                 d.Health.Visible = false
                 d.Tool.Visible = false
             end
+        end)
         elseif d then
-            for _, line in pairs(d.Box) do line.Visible = false end
+            pcall(function()
+            for _, line in pairs(d.Box) do line.Visible = false end)
+        end
             d.Name.Visible = false
             d.Health.Visible = false
             d.Tool.Visible = false
