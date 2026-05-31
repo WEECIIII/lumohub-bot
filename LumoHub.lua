@@ -1382,6 +1382,35 @@ PlayerTab:CreateSlider({
 
 
 
+PlayerTab:CreateSection("Developer Tools (Temporary)")
+
+PlayerTab:CreateButton({
+    Name = "Dump Player Stats to Clipboard",
+    Callback = function()
+        pcall(function()
+            local output = "--- LUMOHUB PLAYER STAT DUMP ---\n"
+            local function scan(parent, path)
+                for _, child in pairs(parent:GetChildren()) do
+                    if child:IsA("IntValue") or child:IsA("NumberValue") or child:IsA("StringValue") then
+                        output = output .. "Stat: [" .. child.Name .. "] = " .. tostring(child.Value) .. " | Path: " .. path .. "." .. child.Name .. "\n"
+                    end
+                    scan(child, path .. "." .. child.Name)
+                end
+            end
+            
+            scan(Player, "Player")
+            
+            if setclipboard then
+                setclipboard(output)
+                Rayfield:Notify({Title = "Dump Successful", Content = "Player stats copied to your clipboard! Paste it to the developer.", Duration = 5})
+            else
+                Rayfield:Notify({Title = "Clipboard Error", Content = "Your exploit does not support setclipboard.", Duration = 3})
+            end
+        end)
+    end,
+})
+
+
 -- GUN SPAWN
 -- ──────────────────────────────────────────────────────────────
 local grabtoolsFunc
