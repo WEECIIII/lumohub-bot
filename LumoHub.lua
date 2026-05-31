@@ -1382,29 +1382,44 @@ PlayerTab:CreateSlider({
 
 
 
-PlayerTab:CreateSection("Developer Tools (Temporary)")
+PlayerTab:CreateSection("Client Sided Spoofs")
 
-PlayerTab:CreateButton({
-    Name = "Dump Player Stats to Clipboard",
-    Callback = function()
+PlayerTab:CreateInput({
+    Name = "Spoof Level (Visual Only)",
+    PlaceholderText = "Enter desired level...",
+    RemoveTextAfterFocusLost = false,
+    Callback = function(Text)
+        local num = tonumber(Text)
+        if not num then
+            Rayfield:Notify({Title = "Invalid Input", Content = "Please enter a valid number.", Duration = 2})
+            return
+        end
         pcall(function()
-            local output = "--- LUMOHUB PLAYER STAT DUMP ---\n"
-            local function scan(parent, path)
-                for _, child in pairs(parent:GetChildren()) do
-                    if child:IsA("IntValue") or child:IsA("NumberValue") or child:IsA("StringValue") then
-                        output = output .. "Stat: [" .. child.Name .. "] = " .. tostring(child.Value) .. " | Path: " .. path .. "." .. child.Name .. "\n"
+            local found = false
+            -- Spoof overhead character tag
+            if Player.Character then
+                for _, obj in pairs(Player.Character:GetDescendants()) do
+                    if obj:IsA("TextLabel") and (string.find(string.lower(obj.Text), "lvl") or string.find(string.lower(obj.Text), "level")) then
+                        obj.Text = "LVL " .. tostring(num)
+                        found = true
                     end
-                    scan(child, path .. "." .. child.Name)
+                end
+            end
+            -- Spoof UI text
+            for _, obj in pairs(Player.PlayerGui:GetDescendants()) do
+                if obj:IsA("TextLabel") and (string.find(string.lower(obj.Text), "lvl") or string.find(string.lower(obj.Text), "level")) then
+                    -- Prevent accidentally changing non-level UI elements that happen to have the word level
+                    if string.len(obj.Text) < 15 then 
+                        obj.Text = "LVL " .. tostring(num)
+                        found = true
+                    end
                 end
             end
             
-            scan(Player, "Player")
-            
-            if setclipboard then
-                setclipboard(output)
-                Rayfield:Notify({Title = "Dump Successful", Content = "Player stats copied to your clipboard! Paste it to the developer.", Duration = 5})
+            if found then
+                Rayfield:Notify({Title = "Level Spoofed!", Content = "Your Level is now " .. tostring(num) .. " on your screen.", Duration = 4})
             else
-                Rayfield:Notify({Title = "Clipboard Error", Content = "Your exploit does not support setclipboard.", Duration = 3})
+                Rayfield:Notify({Title = "Error", Content = "Could not find any Level text to spoof.", Duration = 2})
             end
         end)
     end,
