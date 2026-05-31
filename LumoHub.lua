@@ -391,7 +391,7 @@ local function LoadLumoHub(activeKey, authGui)
     -- ──────────────────────────────────────────────────────────────
     elseif game.PlaceId == 11520261175 or game.PlaceId == 16641885448 or GameName:lower():find("bikelife") then
         local Window = Rayfield:CreateWindow({
-            Name = "LumoHub 🌟 | Bikelife Finland",
+            Name = "LumoHub Premium 🌟 | Bikelife Finland",
             LoadingTitle = "LumoHub Premium",
             LoadingSubtitle = "by LumoHub Team",
             ConfigurationSaving = {
@@ -1124,7 +1124,7 @@ local function LoadLumoHub(activeKey, authGui)
             
         elseif game.PlaceId == 142823291 or GameName:lower():find("murder mystery 2") then
         local Window = Rayfield:CreateWindow({
-            Name = "LumoHub 🔪 | Murder Mystery 2",
+            Name = "LumoHub Premium 🔪 | Murder Mystery 2",
             LoadingTitle = "LumoHub Premium",
             LoadingSubtitle = "by LumoHub Team",
             ConfigurationSaving = {
@@ -2368,7 +2368,7 @@ SettingsTab:CreateButton({
     else
         -- Unsupported Game Fallback
         local Window = Rayfield:CreateWindow({
-            Name = "LumoHub ❌ | Unsupported",
+            Name = "LumoHub Premium ❌ | Unsupported",
             LoadingTitle = "LumoHub Premium",
             LoadingSubtitle = "Game Not Supported",
             ConfigurationSaving = { Enabled = false },
