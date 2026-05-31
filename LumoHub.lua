@@ -1117,6 +1117,8 @@ table.insert(_G.LumoESP_Conns, RunService.RenderStepped:Connect(function()
     if ESP.Enabled then ESP:Update() end
 end))
 
+ESPTab:CreateSection("Visuals & ESP")
+
 ESPTab:CreateToggle({
     Name = "Enable ESP",
     CurrentValue = false,
