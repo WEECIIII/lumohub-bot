@@ -4,6 +4,17 @@ local KEY_URL = "https://lumohub-bot.onrender.com/keys"
 
 if not game:IsLoaded() then game.Loaded:Wait() end
 
+-- Clean up old instances to prevent screen blur bugs
+pcall(function()
+    for _, v in pairs(game:GetService("CoreGui"):GetChildren()) do
+        if v.Name == "Rayfield" then v:Destroy() end
+    end
+    for _, v in pairs(game:GetService("Lighting"):GetChildren()) do
+        if v:IsA("BlurEffect") then v:Destroy() end
+    end
+end)
+
+
 local Players = game:GetService("Players")
 local Player = Players.LocalPlayer
 while not Player do task.wait(0.1) Player = Players.LocalPlayer end
