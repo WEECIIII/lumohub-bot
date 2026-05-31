@@ -1121,7 +1121,7 @@ for _, p in ipairs(Players:GetPlayers()) do if p ~= Player then ESP:SetupPlayer(
 table.insert(_G.LumoESP_Conns, Players.PlayerAdded:Connect(function(p) if p ~= Player then ESP:SetupPlayer(p) end end))
 table.insert(_G.LumoESP_Conns, Players.PlayerRemoving:Connect(function(p) ESP:ClearDrawings(p) end))
 
-table.insert(_G.LumoESP_Conns, table.insert(_G.LumoHub_Connections, RunService.RenderStepped:Connect(function()
+table.insert(_G.LumoESP_Conns, RunService.RenderStepped:Connect(function()
     if ESP.Enabled then ESP:Update() end
 end))
 
@@ -1447,8 +1447,7 @@ local function enableGrabTools()
         end
     end
     if grabtoolsFunc then grabtoolsFunc:Disconnect() end
-    grabtoolsFunc = workspace.ChildAdded:Connect(function() end)
-    table.insert(_G.LumoHub_Connections, workspace.ChildAdded:Connect(function(child)
+    grabtoolsFunc = workspace.ChildAdded:Connect(function(child)
         local humanoid = Player.Character and Player.Character:FindFirstChildOfClass("Humanoid")
         if humanoid and child:IsA("BackpackItem") and child:FindFirstChild("Handle") then
             task.spawn(function()
