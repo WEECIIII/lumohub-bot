@@ -1021,6 +1021,9 @@ function ESP:Clear(player)
 end
 
 function ESP:Update()
+    local currentCamera = workspace.CurrentCamera
+    if not currentCamera then return end
+    
     for _, player in ipairs(Players:GetPlayers()) do
         local d = self.Drawings[player]
         local char = player.Character
@@ -1030,11 +1033,11 @@ function ESP:Update()
         
         -- Check if character is actually in the workspace and alive
         if d and player ~= Players.LocalPlayer and char and char.Parent and hrp and head and hum and hum.Health > 0 then
-            local rootPos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
+            local rootPos, onScreen = currentCamera:WorldToViewportPoint(hrp.Position)
             
             if onScreen then
-                local headPos = Camera:WorldToViewportPoint(head.Position)
-                local bottomPos = Camera:WorldToViewportPoint(hrp.Position - Vector3.new(0, 3, 0))
+                local headPos = currentCamera:WorldToViewportPoint(head.Position)
+                local bottomPos = currentCamera:WorldToViewportPoint(hrp.Position - Vector3.new(0, 3, 0))
                 local height = headPos.Y - bottomPos.Y
                 local width = height / 2.2
                 local tl = Vector2.new(rootPos.X - width / 2, headPos.Y)
