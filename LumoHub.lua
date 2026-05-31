@@ -1034,65 +1034,65 @@ function ESP:Update()
         -- Check if character is actually in the workspace and alive
         if d and player ~= Players.LocalPlayer and char and char.Parent and hrp and head and hum and hum.Health > 0 then
             pcall(function()
-            local rootPos, onScreen = currentCamera:WorldToViewportPoint(hrp.Position)
-            
-            if onScreen then
-                local headPos = currentCamera:WorldToViewportPoint(head.Position)
-                local bottomPos = currentCamera:WorldToViewportPoint(hrp.Position - Vector3.new(0, 3, 0))
-                local height = headPos.Y - bottomPos.Y
-                local width = height / 2.2
-                local tl = Vector2.new(rootPos.X - width / 2, headPos.Y)
-                local tr = Vector2.new(rootPos.X + width / 2, headPos.Y)
-                local bl = Vector2.new(rootPos.X - width / 2, bottomPos.Y)
-                local br = Vector2.new(rootPos.X + width / 2, bottomPos.Y)
+                local rootPos, onScreen = currentCamera:WorldToViewportPoint(hrp.Position)
                 
-                d.Box.TL.From, d.Box.TL.To = tl, tr
-                d.Box.TR.From, d.Box.TR.To = tr, br
-                d.Box.BR.From, d.Box.BR.To = br, bl
-                d.Box.BL.From, d.Box.BL.To = bl, tl
-                for _, line in pairs(d.Box) do 
-                    line.Color = ESP.Color
-                    line.Visible = ESP.Enabled and ESP.Box 
-                end
-                
-                d.Name.Text = player.Name
-                d.Name.Position = Vector2.new(rootPos.X, tl.Y - 14)
-                d.Name.Color = ESP.Color
-                d.Name.Visible = ESP.Enabled and ESP.Name
-                
-                d.Health.Text = "HP: " .. math.floor(hum.Health)
-                d.Health.Position = Vector2.new(rootPos.X, br.Y + 2)
-                d.Health.Color = ESP.Color
-                d.Health.Visible = ESP.Enabled and ESP.Health
-                
-                if ESP.Enabled and ESP.Tool then
-                    local tool = char:FindFirstChildOfClass("Tool")
-                    if tool then
-                        d.Tool.Text = "Tool: " .. tool.Name
-                        d.Tool.Position = Vector2.new(rootPos.X, br.Y + 18)
-                        d.Tool.Color = ESP.Color
-                        d.Tool.Visible = true
+                if onScreen then
+                    local headPos = currentCamera:WorldToViewportPoint(head.Position)
+                    local bottomPos = currentCamera:WorldToViewportPoint(hrp.Position - Vector3.new(0, 3, 0))
+                    local height = headPos.Y - bottomPos.Y
+                    local width = height / 2.2
+                    local tl = Vector2.new(rootPos.X - width / 2, headPos.Y)
+                    local tr = Vector2.new(rootPos.X + width / 2, headPos.Y)
+                    local bl = Vector2.new(rootPos.X - width / 2, bottomPos.Y)
+                    local br = Vector2.new(rootPos.X + width / 2, bottomPos.Y)
+                    
+                    d.Box.TL.From, d.Box.TL.To = tl, tr
+                    d.Box.TR.From, d.Box.TR.To = tr, br
+                    d.Box.BR.From, d.Box.BR.To = br, bl
+                    d.Box.BL.From, d.Box.BL.To = bl, tl
+                    for _, line in pairs(d.Box) do 
+                        line.Color = ESP.Color
+                        line.Visible = ESP.Enabled and ESP.Box 
+                    end
+                    
+                    d.Name.Text = player.Name
+                    d.Name.Position = Vector2.new(rootPos.X, tl.Y - 14)
+                    d.Name.Color = ESP.Color
+                    d.Name.Visible = ESP.Enabled and ESP.Name
+                    
+                    d.Health.Text = "HP: " .. math.floor(hum.Health)
+                    d.Health.Position = Vector2.new(rootPos.X, br.Y + 2)
+                    d.Health.Color = ESP.Color
+                    d.Health.Visible = ESP.Enabled and ESP.Health
+                    
+                    if ESP.Enabled and ESP.Tool then
+                        local tool = char:FindFirstChildOfClass("Tool")
+                        if tool then
+                            d.Tool.Text = "Tool: " .. tool.Name
+                            d.Tool.Position = Vector2.new(rootPos.X, br.Y + 18)
+                            d.Tool.Color = ESP.Color
+                            d.Tool.Visible = true
+                        else
+                            d.Tool.Visible = false
+                        end
                     else
                         d.Tool.Visible = false
                     end
                 else
+                    -- Offscreen
+                    for _, line in pairs(d.Box) do line.Visible = false end
+                    d.Name.Visible = false
+                    d.Health.Visible = false
                     d.Tool.Visible = false
                 end
-            else
-                -- Offscreen
+            end)
+        elseif d then
+            pcall(function()
                 for _, line in pairs(d.Box) do line.Visible = false end
                 d.Name.Visible = false
                 d.Health.Visible = false
                 d.Tool.Visible = false
-            end
-        end)
-        elseif d then
-            pcall(function()
-            for _, line in pairs(d.Box) do line.Visible = false end)
-        end
-            d.Name.Visible = false
-            d.Health.Visible = false
-            d.Tool.Visible = false
+            end)
         end
     end
 end
