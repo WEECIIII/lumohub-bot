@@ -14,6 +14,15 @@ pcall(function()
     end
 end)
 
+-- ──────────────────────────────────────────────────────────────
+-- GLOBAL CLEANUP (Prevents lag/bugs on re-execution)
+-- ──────────────────────────────────────────────────────────────
+if _G.LumoHub_Connections then
+    for _, conn in pairs(_G.LumoHub_Connections) do
+        pcall(function() conn:Disconnect() end)
+    end
+end
+_G.LumoHub_Connections = {}
 
 local Players = game:GetService("Players")
 local Player = Players.LocalPlayer
