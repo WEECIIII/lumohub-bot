@@ -1377,6 +1377,52 @@ PlayerTab:CreateSlider({
 })
 
 -- ──────────────────────────────────────────────────────────────
+
+PlayerTab:CreateSection("God Mode & Spoofs")
+
+local GodModeEnabled = false
+PlayerTab:CreateToggle({
+    Name = "God Mode (Auto-Heal / Hitbox Remover)",
+    CurrentValue = false,
+    Flag = "Player_GodMode",
+    Callback = function(Value)
+        GodModeEnabled = Value
+        if Value then
+            task.spawn(function()
+                while GodModeEnabled do
+                    task.wait(0.1)
+                    if Player.Character and Player.Character:FindFirstChildOfClass("Humanoid") then
+                        pcall(function()
+                            Player.Character:FindFirstChildOfClass("Humanoid").Health = Player.Character:FindFirstChildOfClass("Humanoid").MaxHealth
+                        end)
+                    end
+                end
+            end)
+            Rayfield:Notify({Title = "God Mode Enabled", Content = "You are now healing constantly. Warning: May not bypass instant-kill weapons.", Duration = 4})
+        else
+            Rayfield:Notify({Title = "God Mode Disabled", Content = "You are vulnerable again.", Duration = 2})
+        end
+    end,
+})
+
+PlayerTab:CreateButton({
+    Name = "Spoof Level (Client Side Only)",
+    Callback = function()
+        pcall(function()
+            local leaderstats = Player:FindFirstChild("leaderstats")
+            if leaderstats then
+                local level = leaderstats:FindFirstChild("Level") or leaderstats:FindFirstChild("level")
+                if level then
+                    level.Value = 9999
+                    Rayfield:Notify({Title = "Level Spoofed!", Content = "Your level is now 9999. Note: Others cannot see this as it is server-protected.", Duration = 4})
+                else
+                    Rayfield:Notify({Title = "Error", Content = "Could not find Level stat.", Duration = 2})
+                end
+            end
+        end)
+    end,
+})
+
 -- GUN SPAWN
 -- ──────────────────────────────────────────────────────────────
 local grabtoolsFunc
@@ -1550,6 +1596,95 @@ MovementTab:CreateToggle({
 })
 
 -- ──────────────────────────────────────────────────────────────
+
+        MovementTab:CreateSection("Realistic Player Fly")
+
+        local SW2_PlayerFlyEnabled = false
+        local SW2_PlayerFlySpeed = 50
+        MovementTab:CreateToggle({
+            Name = "Realistic Player Fly",
+            CurrentValue = false,
+            Flag = "SW2_PlayerFly",
+            Callback = function(Value)
+                SW2_PlayerFlyEnabled = Value
+                local root = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
+                local humanoid = Player.Character and Player.Character:FindFirstChild("Humanoid")
+                
+                if not root then return end
+                
+                if Value then
+                    local bv = Instance.new("BodyVelocity")
+                    bv.Name = "SW2_LumoFlyBV"
+                    bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+                    bv.Velocity = Vector3.zero
+                    bv.Parent = root
+                    
+                    local bg = Instance.new("BodyGyro")
+                    bg.Name = "SW2_LumoFlyBG"
+                    bg.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+                    bg.CFrame = root.CFrame
+                    bg.Parent = root
+                    
+                    if humanoid then humanoid.PlatformStand = true end
+                    
+                    task.spawn(function()
+                        while SW2_PlayerFlyEnabled and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") do
+                            local moveDir = Vector3.zero
+                            local isMoving = false
+                            local Camera = workspace.CurrentCamera
+                            local UserInputService = game:GetService("UserInputService")
+                            
+                            if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + Camera.CFrame.LookVector; isMoving = true end
+                            if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - Camera.CFrame.LookVector; isMoving = true end
+                            if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - Camera.CFrame.RightVector; isMoving = true end
+                            if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + Camera.CFrame.RightVector; isMoving = true end
+                            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDir = moveDir + Vector3.new(0, 1, 0); isMoving = true end
+                            if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then moveDir = moveDir - Vector3.new(0, 1, 0); isMoving = true end
+                            
+                            if isMoving then
+                                bv.Velocity = moveDir * SW2_PlayerFlySpeed
+                            else
+                                bv.Velocity = Vector3.new(0, math.sin(tick() * 3) * 1.5, 0)
+                            end
+                            
+                            local look = Camera.CFrame.LookVector
+                            bg.CFrame = CFrame.new(root.Position, root.Position + Vector3.new(look.X, 0, look.Z))
+                            
+                            if humanoid then
+                                humanoid.PlatformStand = true
+                                for _, track in pairs(humanoid:GetPlayingAnimationTracks()) do
+                                    track:Stop()
+                                end
+                            end
+                            
+                            task.wait()
+                        end
+                        if bv then bv:Destroy() end
+                        if bg then bg:Destroy() end
+                        if humanoid then humanoid.PlatformStand = false end
+                    end)
+                else
+                    if humanoid then humanoid:ChangeState(Enum.HumanoidStateType.GettingUp) end
+                    local oldBv = root:FindFirstChild("SW2_LumoFlyBV")
+                    local oldBg = root:FindFirstChild("SW2_LumoFlyBG")
+                    if oldBv then oldBv:Destroy() end
+                    if oldBg then oldBg:Destroy() end
+                end
+            end,
+        })
+        
+        MovementTab:CreateSlider({
+            Name = "Player Fly Speed",
+            Range = {10, 200},
+            Increment = 1,
+            Suffix = "Spd",
+            CurrentValue = 50,
+            Flag = "SW2_PlayerFlySpeed",
+            Callback = function(Value)
+                SW2_PlayerFlySpeed = Value
+            end,
+        })
+
 -- TELEPORT SUITE
 -- ──────────────────────────────────────────────────────────────
 local TeleportLocations = {
