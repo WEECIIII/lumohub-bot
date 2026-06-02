@@ -1923,24 +1923,33 @@ SettingsTab:CreateButton({
         
         local wallbangLoop
         MainTab:CreateToggle({
-            Name = "Wallbang (Shoot Through Walls)",
+            Name = "Wallbang (Shoot & See Through Walls)",
             CurrentValue = false,
             Flag = "KAT_Wallbang",
             Callback = function(Value)
                 if Value then
                     wallbangLoop = game:GetService("RunService").Stepped:Connect(function()
-                        for _, v in pairs(workspace:GetDescendants()) do
-                            if v:IsA("BasePart") and not v.Parent:FindFirstChild("Humanoid") then
-                                pcall(function() v.CanQuery = false end)
+                        -- Attempt to find the map folder, or just iterate workspace
+                        local mapFolder = workspace:FindFirstChild("Map") or workspace:FindFirstChild("CurrentMap") or workspace
+                        for _, v in pairs(mapFolder:GetDescendants()) do
+                            if v:IsA("BasePart") and not v.Parent:FindFirstChild("Humanoid") and v.Name ~= "Baseplate" and v.Name ~= "Floor" then
+                                pcall(function() 
+                                    v.CanQuery = false 
+                                    v.Transparency = 0.5 -- Visual feedback so the user knows it works
+                                end)
                             end
                         end
                     end)
-                    Rayfield:Notify({Title = "Wallbang", Content = "You can now shoot through map walls!", Duration = 3})
+                    Rayfield:Notify({Title = "Wallbang", Content = "Walls are now ghosted! You can shoot through them.", Duration = 3})
                 else
                     if wallbangLoop then wallbangLoop:Disconnect() end
-                    for _, v in pairs(workspace:GetDescendants()) do
+                    local mapFolder = workspace:FindFirstChild("Map") or workspace:FindFirstChild("CurrentMap") or workspace
+                    for _, v in pairs(mapFolder:GetDescendants()) do
                         if v:IsA("BasePart") and not v.Parent:FindFirstChild("Humanoid") then
-                            pcall(function() v.CanQuery = true end)
+                            pcall(function() 
+                                v.CanQuery = true 
+                                if v.Transparency == 0.5 then v.Transparency = 0 end
+                            end)
                         end
                     end
                 end
@@ -2031,24 +2040,29 @@ SettingsTab:CreateButton({
         -- Player Features
         PlayerTab:CreateSection("God Mode & Defenses")
         
+        local godModeLoop
         PlayerTab:CreateToggle({
             Name = "KAT God Mode (Invincible)",
             CurrentValue = false,
             Flag = "KAT_GodMode",
             Callback = function(Value)
                 if Value then
-                    if Player.Character then
-                        pcall(function()
-                            -- Removing hitboxes makes you immune to knives and guns in KAT
-                            if Player.Character:FindFirstChild("Head") then
-                                Player.Character.Head:Destroy()
-                            end
-                            if Player.Character:FindFirstChild("Hitbox") then
-                                Player.Character.Hitbox:Destroy()
-                            end
-                        end)
-                        Rayfield:Notify({Title = "God Mode", Content = "You are now immune to most attacks! (Reset character to disable)", Duration = 4})
-                    end
+                    godModeLoop = game:GetService("RunService").Heartbeat:Connect(function()
+                        if Player.Character then
+                            pcall(function()
+                                -- Removing hitboxes makes you immune to knives and guns in KAT
+                                if Player.Character:FindFirstChild("Head") then
+                                    Player.Character.Head:Destroy()
+                                end
+                                if Player.Character:FindFirstChild("Hitbox") then
+                                    Player.Character.Hitbox:Destroy()
+                                end
+                            end)
+                        end
+                    end)
+                    Rayfield:Notify({Title = "God Mode", Content = "You are now immune to most attacks! (Reset character to disable)", Duration = 4})
+                else
+                    if godModeLoop then godModeLoop:Disconnect() end
                 end
             end,
         })
