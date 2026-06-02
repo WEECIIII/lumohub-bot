@@ -1941,6 +1941,8 @@ SettingsTab:CreateButton({
 
         local MainTab = Window:CreateTab("Combat & Visuals ⚔️", 4483362458)
         local PlayerTab = Window:CreateTab("LocalPlayer 👤", 4483362458)
+        local UtilityTab = Window:CreateTab("Utility & World 🛠️", 4483362458)
+        local ServerTab = Window:CreateTab("Server 🌍", 4483362458)
         
         -- Safe ESP
         MainTab:CreateSection("Visuals (Undetected)")
@@ -2148,8 +2150,125 @@ SettingsTab:CreateButton({
                 end
             end,
         })
+        
+        PlayerTab:CreateSection("Teleportation")
+        
+        local selectedPlayerToTP = nil
+        local tpDropdown = PlayerTab:CreateDropdown({
+            Name = "Select Player to Teleport To",
+            Options = {"Select a Player"},
+            CurrentOption = {"Select a Player"},
+            MultipleOptions = false,
+            Flag = "Uni_TPDropdown",
+            Callback = function(Option)
+                selectedPlayerToTP = Option[1]
+            end,
+        })
+        
+        PlayerTab:CreateButton({
+            Name = "Refresh Player List",
+            Callback = function()
+                local playerNames = {}
+                for _, v in pairs(game.Players:GetPlayers()) do
+                    if v ~= Player then
+                        table.insert(playerNames, v.Name)
+                    end
+                end
+                tpDropdown:Refresh(playerNames, true)
+            end,
+        })
+        
+        PlayerTab:CreateButton({
+            Name = "Teleport to Player",
+            Callback = function()
+                if selectedPlayerToTP and selectedPlayerToTP ~= "Select a Player" then
+                    local targetPlayer = game.Players:FindFirstChild(selectedPlayerToTP)
+                    if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                        if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
+                            Player.Character.HumanoidRootPart.CFrame = targetPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
+                            Rayfield:Notify({Title = "Teleported", Content = "Successfully teleported to " .. targetPlayer.Name, Duration = 2})
+                        end
+                    end
+                else
+                    Rayfield:Notify({Title = "Error", Content = "Please select a valid player first.", Duration = 2})
+                end
+            end,
+        })
 
-        Rayfield:LoadConfiguration()
+        -- Utility Tab
+        UtilityTab:CreateSection("Building Tools (Client-Sided)")
+        UtilityTab:CreateButton({
+            Name = "Give Btools (F3X)",
+            Callback = function()
+                local btools = Instance.new("HopperBin")
+                btools.BinType = Enum.BinType.Clone
+                btools.Parent = Player:WaitForChild("Backpack")
+                
+                local btools2 = Instance.new("HopperBin")
+                btools2.BinType = Enum.BinType.Hammer
+                btools2.Parent = Player:WaitForChild("Backpack")
+                
+                local btools3 = Instance.new("HopperBin")
+                btools3.BinType = Enum.BinType.Grab
+                btools3.Parent = Player:WaitForChild("Backpack")
+                
+                Rayfield:Notify({Title = "Btools Given", Content = "Classic Btools have been added to your inventory.", Duration = 3})
+            end,
+        })
+        
+        UtilityTab:CreateButton({
+            Name = "Delete Invisible Walls",
+            Callback = function()
+                local count = 0
+                for _, v in pairs(workspace:GetDescendants()) do
+                    if v:IsA("BasePart") and v.Transparency >= 1 and v.CanCollide == true and v.Name ~= "HumanoidRootPart" then
+                        v:Destroy()
+                        count = count + 1
+                    end
+                end
+                Rayfield:Notify({Title = "Walls Deleted", Content = "Deleted " .. count .. " invisible barriers.", Duration = 3})
+            end,
+        })
+
+        -- Server Tab
+        ServerTab:CreateSection("Server Management")
+        ServerTab:CreateButton({
+            Name = "Rejoin Current Server",
+            Callback = function()
+                Rayfield:Notify({Title = "Rejoining", Content = "Rejoining the same server...", Duration = 3})
+                game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, game.JobId, Player)
+            end,
+        })
+        
+        ServerTab:CreateButton({
+            Name = "Server Hop (Find New Server)",
+            Callback = function()
+                Rayfield:Notify({Title = "Server Hopping", Content = "Finding a new server...", Duration = 3})
+                local HttpService = game:GetService("HttpService")
+                local TeleportService = game:GetService("TeleportService")
+                
+                local function hop()
+                    local servers = {}
+                    local req = request({Url = "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Desc&limit=100"})
+                    if req and req.StatusCode == 200 then
+                        local body = HttpService:JSONDecode(req.Body)
+                        if body and body.data then
+                            for _, v in pairs(body.data) do
+                                if type(v) == "table" and v.playing < v.maxPlayers and v.id ~= game.JobId then
+                                    table.insert(servers, 1, v.id)
+                                end
+                            end
+                        end
+                        if #servers > 0 then
+                            TeleportService:TeleportToPlaceInstance(game.PlaceId, servers[math.random(1, #servers)], Player)
+                        else
+                            Rayfield:Notify({Title = "Error", Content = "Could not find a different server.", Duration = 3})
+                        end
+                    end
+                end
+                pcall(hop)
+            end,
+        })
     end
 end
 
