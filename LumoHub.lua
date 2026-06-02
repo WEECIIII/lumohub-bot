@@ -241,45 +241,58 @@ local function LoadLumoHub(activeKey, authGui)
         local MovementTab = Window:CreateTab("Movement 🏃", 4483362458)
         local SettingsTab = Window:CreateTab("Settings ⚙️", 4483362458)
         
+        local function SafeTeleport(targetCFrame, speed)
+            local char = Player.Character
+            if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+            local hrp = char.HumanoidRootPart
+            local dist = (hrp.Position - targetCFrame.Position).Magnitude
+            
+            local ts = game:GetService("TweenService")
+            local ti = TweenInfo.new(dist / speed, Enum.EasingStyle.Linear)
+            local tween = ts:Create(hrp, ti, {CFrame = targetCFrame})
+            
+            local bv = Instance.new("BodyVelocity")
+            bv.Velocity = Vector3.zero
+            bv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+            bv.Parent = hrp
+            
+            tween:Play()
+            tween.Completed:Wait()
+            if bv then bv:Destroy() end
+        end
+
         MainTab:CreateSection("Farming & Features")
 
-        local instaStealEnabled = false
-        MainTab:CreateToggle({
-            Name = "Insta Steal (Undetected)",
-            CurrentValue = false,
-            Flag = "Brainrot_InstaSteal",
-            Callback = function(Value)
-                instaStealEnabled = Value
-                if Value then
-                    task.spawn(function()
-                        while instaStealEnabled do
-                            -- Wait a randomized amount of time to bypass simple anti-cheats tracking input frequency
-                            task.wait(math.random(1, 3) / 10) 
-                            
-                            local char = Player.Character
-                            if char and char:FindFirstChild("HumanoidRootPart") then
-                                local rootPos = char.HumanoidRootPart.Position
-                                
-                                -- Search for ProximityPrompts close to the player to avoid global teleport checks
-                                for _, prompt in ipairs(workspace:GetDescendants()) do
-                                    if prompt:IsA("ProximityPrompt") then
-                                        local parent = prompt.Parent
-                                        if parent and parent:IsA("BasePart") then
-                                            -- Only interact if within a safe distance (e.g., 15 studs) to remain undetected
-                                            if (parent.Position - rootPos).Magnitude <= 15 then
-                                                -- Bypass hold duration to make it instant
-                                                local originalDuration = prompt.HoldDuration
-                                                prompt.HoldDuration = 0
-                                                prompt:InputHoldBegin()
-                                                prompt:InputHoldEnd()
-                                                prompt.HoldDuration = originalDuration
-                                            end
-                                        end
-                                    end
-                                end
-                            end
-                        end
-                    end)
+        local baseLocation = nil
+
+        MainTab:CreateButton({
+            Name = "Set Base Location (Stand in your base first!)",
+            Callback = function()
+                local char = Player.Character
+                if char and char:FindFirstChild("HumanoidRootPart") then
+                    baseLocation = char.HumanoidRootPart.CFrame
+                    Rayfield:Notify({Title = "Base Set!", Content = "Your base location has been saved.", Duration = 3})
+                end
+            end,
+        })
+
+        MainTab:CreateKeybind({
+            Name = "Insta Steal Drop-off (Teleport to Base & Back)",
+            CurrentKeybind = "V",
+            HoldToInteract = false,
+            Flag = "Brainrot_BaseDropoff",
+            Callback = function()
+                if not baseLocation then
+                    Rayfield:Notify({Title = "Error", Content = "Please set your Base Location first!", Duration = 3})
+                    return
+                end
+                local char = Player.Character
+                if char and char:FindFirstChild("HumanoidRootPart") then
+                    local savedPos = char.HumanoidRootPart.CFrame
+                    -- 250 studs per second seems fast but safe for tweens
+                    SafeTeleport(baseLocation, 250) 
+                    task.wait(0.5) -- Wait to drop off the item
+                    SafeTeleport(savedPos, 250)
                 end
             end,
         })
@@ -300,7 +313,7 @@ local function LoadLumoHub(activeKey, authGui)
         })
 
         MovementTab:CreateKeybind({
-            Name = "Flash Step Keybind",
+            Name = "Flash Step (Safe Tween)",
             CurrentKeybind = "C",
             HoldToInteract = false,
             Flag = "Brainrot_FlashStepKey",
@@ -309,7 +322,8 @@ local function LoadLumoHub(activeKey, authGui)
                 if char and char:FindFirstChild("HumanoidRootPart") then
                     local hrp = char.HumanoidRootPart
                     local lookVector = hrp.CFrame.LookVector
-                    hrp.CFrame = hrp.CFrame + (lookVector * flashStepDistance)
+                    local target = hrp.CFrame + (lookVector * flashStepDistance)
+                    SafeTeleport(target, 400) 
                 end
             end,
         })
