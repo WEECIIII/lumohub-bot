@@ -2183,9 +2183,6 @@ SettingsTab:CreateButton({
                 end
             end,
         })
-        
-        })
-        
         local osFovCircle = nil
         if Drawing then
             pcall(function()
