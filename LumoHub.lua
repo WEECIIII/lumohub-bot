@@ -239,6 +239,7 @@ local function LoadLumoHub(activeKey, authGui)
 
         local MainTab = Window:CreateTab("Main 🏠", 4483362458)
         local MovementTab = Window:CreateTab("Movement 🏃", 4483362458)
+        local VisualsTab = Window:CreateTab("Visuals 👁️", 4483362458)
         local ServerTab = Window:CreateTab("Server 🌐", 4483362458)
         local SettingsTab = Window:CreateTab("Settings ⚙️", 4483362458)
         
@@ -300,6 +301,23 @@ local function LoadLumoHub(activeKey, authGui)
             end,
         })
 
+        MainTab:CreateButton({
+            Name = "Disable Base Lasers (Local Anti-Kill)",
+            Callback = function()
+                local count = 0
+                for _, part in ipairs(workspace:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        local name = string.lower(part.Name)
+                        if string.find(name, "laser") or string.find(name, "kill") then
+                            part:Destroy()
+                            count = count + 1
+                        end
+                    end
+                end
+                Rayfield:Notify({Title = "Lasers Disabled", Content = "Destroyed " .. count .. " laser/kill parts locally.", Duration = 3})
+            end,
+        })
+
         MainTab:CreateKeybind({
             Name = "Quick Drop-off (Teleport Base & Back)",
             CurrentKeybind = "V",
@@ -311,14 +329,53 @@ local function LoadLumoHub(activeKey, authGui)
                     return
                 end
                 local char = Player.Character
-                if char and char:FindFirstChild("HumanoidRootPart") then
+                if char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChild("Humanoid") then
                     local hrp = char.HumanoidRootPart
+                    local hum = char.Humanoid
                     local savedPos = hrp.CFrame
+                    
+                    -- Freeze momentum to bypass BAC-5354 velocity checks
+                    local oldSpeed = hum.WalkSpeed
+                    hum.WalkSpeed = 0
+                    if hrp:FindFirstChild("Velocity") then hrp.Velocity = Vector3.zero end
                     
                     -- Instantly pivot to avoid dragging through lasers
                     char:PivotTo(baseLocation)
                     task.wait(0.4) 
                     char:PivotTo(savedPos)
+                    
+                    hum.WalkSpeed = oldSpeed
+                end
+            end,
+        })
+
+        MovementTab:CreateSection("Player Modifiers")
+        
+        MovementTab:CreateSlider({
+            Name = "Walk Speed",
+            Range = {16, 150},
+            Increment = 1,
+            Suffix = " WS",
+            CurrentValue = 16,
+            Flag = "Brainrot_WS",
+            Callback = function(Value)
+                if Player.Character and Player.Character:FindFirstChild("Humanoid") then
+                    Player.Character.Humanoid.WalkSpeed = Value
+                end
+            end,
+        })
+        
+        MovementTab:CreateSlider({
+            Name = "Jump Power",
+            Range = {50, 200},
+            Increment = 1,
+            Suffix = " JP",
+            CurrentValue = 50,
+            Flag = "Brainrot_JP",
+            Callback = function(Value)
+                if Player.Character and Player.Character:FindFirstChild("Humanoid") then
+                    Player.Character.Humanoid.UseJumpPower = true
+                    Player.Character.Humanoid.JumpPower = Value
                 end
             end,
         })
@@ -365,6 +422,30 @@ local function LoadLumoHub(activeKey, authGui)
         })
 
         CreateProtectionsTab(Window)
+        
+        VisualsTab:CreateSection("Lighting")
+        VisualsTab:CreateToggle({
+            Name = "FullBright",
+            CurrentValue = false,
+            Flag = "Brainrot_Fullbright",
+            Callback = function(Value)
+                local lighting = game:GetService("Lighting")
+                if Value then
+                    lighting.Brightness = 2
+                    lighting.ClockTime = 14
+                    lighting.FogEnd = 100000
+                    lighting.GlobalShadows = false
+                    lighting.OutdoorAmbient = Color3.fromRGB(128, 128, 128)
+                else
+                    lighting.Brightness = 1
+                    lighting.ClockTime = 12
+                    lighting.FogEnd = 10000
+                    lighting.GlobalShadows = true
+                    lighting.OutdoorAmbient = Color3.fromRGB(127, 127, 127)
+                end
+            end,
+        })
+        
         Rayfield:LoadConfiguration()
 
     elseif game.GameId == 7436755782 or game.PlaceId == 126884695634066 or string.find(string.lower(GameName), "garden") then
