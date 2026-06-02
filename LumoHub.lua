@@ -220,7 +220,7 @@ local function LoadLumoHub(activeKey, authGui)
             Name = "LumoHub Premium 🍋 | " .. GameName,
             Icon = 0,
             LoadingTitle = "LumoHub Premium",
-            LoadingSubtitle = "Injecting Developer Tools...",
+            LoadingSubtitle = "Injecting Modules...",
             Theme = "Default",
             DisableRayfieldPrompts = true,
             DisableBuildWarnings = true,
@@ -237,8 +237,163 @@ local function LoadLumoHub(activeKey, authGui)
             KeySystem = false
         })
 
+        local MainTab = Window:CreateTab("Main 🏠", 4483362458)
         local DevTab = Window:CreateTab("Developer 🛠️", 4483362458)
         local SettingsTab = Window:CreateTab("Settings ⚙️", 4483362458)
+        
+        local function getTycoons()
+            local tycoons = {}
+            for _, v in ipairs(workspace:GetChildren()) do
+                if string.find(v.Name, "Tycoon") then
+                    table.insert(tycoons, v)
+                end
+            end
+            return tycoons
+        end
+
+        MainTab:CreateSection("Auto Farming")
+        
+        local autoBuy = false
+        MainTab:CreateToggle({
+            Name = "Auto Buy (Everything)",
+            CurrentValue = false,
+            Flag = "Lemons_AutoBuy",
+            Callback = function(Value)
+                autoBuy = Value
+                if autoBuy then
+                    task.spawn(function()
+                        while autoBuy do
+                            for _, tycoon in ipairs(getTycoons()) do
+                                local purchases = tycoon:FindFirstChild("Purchases")
+                                if purchases then
+                                    for _, obj in ipairs(purchases:GetDescendants()) do
+                                        if not autoBuy then break end
+                                        if obj:IsA("RemoteFunction") and obj.Name == "Purchase" then
+                                            task.spawn(function() pcall(function() obj:InvokeServer() end) end)
+                                            task.wait(0.01)
+                                        end
+                                    end
+                                end
+                            end
+                            task.wait(1)
+                        end
+                    end)
+                end
+            end,
+        })
+
+        local autoUpgrade = false
+        MainTab:CreateToggle({
+            Name = "Auto Upgrade",
+            CurrentValue = false,
+            Flag = "Lemons_AutoUpgrade",
+            Callback = function(Value)
+                autoUpgrade = Value
+                if autoUpgrade then
+                    task.spawn(function()
+                        while autoUpgrade do
+                            for _, tycoon in ipairs(getTycoons()) do
+                                local purchases = tycoon:FindFirstChild("Purchases")
+                                if purchases then
+                                    for _, obj in ipairs(purchases:GetDescendants()) do
+                                        if not autoUpgrade then break end
+                                        if obj:IsA("RemoteFunction") and obj.Name == "Upgrade" then
+                                            task.spawn(function() pcall(function() obj:InvokeServer() end) end)
+                                            task.wait(0.01)
+                                        end
+                                    end
+                                end
+                            end
+                            task.wait(2)
+                        end
+                    end)
+                end
+            end,
+        })
+        
+        MainTab:CreateSection("Auto Progression")
+
+        local autoRebirth = false
+        MainTab:CreateToggle({
+            Name = "Auto Rebirth",
+            CurrentValue = false,
+            Flag = "Lemons_AutoRebirth",
+            Callback = function(Value)
+                autoRebirth = Value
+                if autoRebirth then
+                    task.spawn(function()
+                        while autoRebirth do
+                            for _, tycoon in ipairs(getTycoons()) do
+                                local remotes = tycoon:FindFirstChild("Remotes")
+                                if remotes then
+                                    local rebirth = remotes:FindFirstChild("Rebirth")
+                                    if rebirth and rebirth:IsA("RemoteFunction") then
+                                        task.spawn(function() pcall(function() rebirth:InvokeServer() end) end)
+                                    end
+                                end
+                            end
+                            task.wait(5)
+                        end
+                    end)
+                end
+            end,
+        })
+        
+        local autoEvolve = false
+        MainTab:CreateToggle({
+            Name = "Auto Evolve & Ascend",
+            CurrentValue = false,
+            Flag = "Lemons_AutoEvolve",
+            Callback = function(Value)
+                autoEvolve = Value
+                if autoEvolve then
+                    task.spawn(function()
+                        while autoEvolve do
+                            for _, tycoon in ipairs(getTycoons()) do
+                                local remotes = tycoon:FindFirstChild("Remotes")
+                                if remotes then
+                                    local evolve = remotes:FindFirstChild("Evolve")
+                                    local ascend = remotes:FindFirstChild("Ascend")
+                                    if evolve and evolve:IsA("RemoteFunction") then
+                                        task.spawn(function() pcall(function() evolve:InvokeServer() end) end)
+                                    end
+                                    if ascend and ascend:IsA("RemoteFunction") then
+                                        task.spawn(function() pcall(function() ascend:InvokeServer() end) end)
+                                    end
+                                end
+                            end
+                            task.wait(5)
+                        end
+                    end)
+                end
+            end,
+        })
+        
+        local autoPhone = false
+        MainTab:CreateToggle({
+            Name = "Auto Accept Phone Offers",
+            CurrentValue = false,
+            Flag = "Lemons_AutoPhone",
+            Callback = function(Value)
+                autoPhone = Value
+                if autoPhone then
+                    task.spawn(function()
+                        while autoPhone do
+                            for _, tycoon in ipairs(getTycoons()) do
+                                local remotes = tycoon:FindFirstChild("Remotes")
+                                if remotes then
+                                    local offer = remotes:FindFirstChild("PhoneOffer")
+                                    if offer and offer:IsA("RemoteEvent") then
+                                        pcall(function() offer:FireServer(true) end)
+                                    end
+                                end
+                            end
+                            task.wait(3)
+                        end
+                    end)
+                end
+            end,
+        })
         
         DevTab:CreateSection("Game Recon")
         
