@@ -1525,33 +1525,86 @@ GunTab:CreateToggle({
     Callback = function(Value)
         if Value then
             infAmmoLoop = game:GetService("RunService").Heartbeat:Connect(function()
+                local char = Player.Character
+                if not char then return end
+                
                 local function modGun(gun)
-                    if gun:IsA("Tool") then
-                        for _, v in ipairs(gun:GetDescendants()) do
-                            if v:IsA("IntValue") or v:IsA("NumberValue") then
-                                if string.find(string.lower(v.Name), "ammo") or string.find(string.lower(v.Name), "clip") then
-                                    if v.Value < 900 then v.Value = 999 end
-                                end
-                            elseif v:IsA("ModuleScript") and (string.find(string.lower(v.Name), "setting")) then
-                                pcall(function()
-                                    local conf = require(v)
+                    if not gun:IsA("Tool") then return end
+                    
+                    -- Method 1: ValueBases
+                    local maxClip = 999
+                    for _, v in ipairs(gun:GetDescendants()) do
+                        if v:IsA("ValueBase") then
+                            local name = string.lower(v.Name)
+                            if name == "maxclip" or name == "maxammo" or name == "clipsize" then
+                                maxClip = tonumber(v.Value) or 999
+                            end
+                        end
+                    end
+                    
+                    for _, v in ipairs(gun:GetDescendants()) do
+                        if v:IsA("IntValue") or v:IsA("NumberValue") then
+                            local name = string.lower(v.Name)
+                            if name == "ammo" or name == "clip" or name == "currentammo" then
+                                if v.Value < maxClip then v.Value = maxClip end
+                            end
+                            if name == "storedammo" or name == "reserve" then
+                                v.Value = 9999
+                            end
+                        end
+                        
+                        -- Method 2: Fire Reload Remotes Automatically
+                        if v:IsA("RemoteEvent") and (string.find(string.lower(v.Name), "reload") or string.find(string.lower(v.Name), "fill")) then
+                            pcall(function() v:FireServer() end)
+                        end
+                        
+                        -- Method 3: Module Scripts
+                        if v:IsA("ModuleScript") then
+                            pcall(function()
+                                local conf = require(v)
+                                if type(conf) == "table" then
                                     if conf.Ammo then conf.Ammo = 999 end
                                     if conf.MaxAmmo then conf.MaxAmmo = 999 end
                                     if conf.Clip then conf.Clip = 999 end
                                     if conf.ClipSize then conf.ClipSize = 999 end
                                     if conf.StoredAmmo then conf.StoredAmmo = 9999 end
-                                end)
-                            end
+                                    if conf.Mag then conf.Mag = 999 end
+                                end
+                            end)
+                        end
+                    end
+                    
+                    -- Method 4: ACS Engine Support
+                    local acs = gun:FindFirstChild("ACS_Modulo")
+                    if acs then
+                        local vars = acs:FindFirstChild("Variaveis")
+                        if vars and vars:FindFirstChild("Ammo") then
+                            vars.Ammo.Value = 999
+                        end
+                        if vars and vars:FindFirstChild("StoredAmmo") then
+                            vars.StoredAmmo.Value = 9999
                         end
                     end
                 end
                 
-                if Player.Character then
-                    for _, v in ipairs(Player.Character:GetChildren()) do modGun(v) end
-                end
-                if Player:FindFirstChild("Backpack") then
-                    for _, v in ipairs(Player.Backpack:GetChildren()) do modGun(v) end
-                end
+                for _, v in ipairs(char:GetChildren()) do modGun(v) end
+                
+                -- Method 5: Garbage Collection Table Modification (Universal)
+                pcall(function()
+                    for _, v in ipairs(getgc(true)) do
+                        if type(v) == "table" then
+                            if rawget(v, "Ammo") and type(rawget(v, "Ammo")) == "number" and rawget(v, "Ammo") < 900 then
+                                rawset(v, "Ammo", 999)
+                            end
+                            if rawget(v, "Clip") and type(rawget(v, "Clip")) == "number" and rawget(v, "Clip") < 900 then
+                                rawset(v, "Clip", 999)
+                            end
+                            if rawget(v, "CurrentAmmo") and type(rawget(v, "CurrentAmmo")) == "number" and rawget(v, "CurrentAmmo") < 900 then
+                                rawset(v, "CurrentAmmo", 999)
+                            end
+                        end
+                    end
+                end)
             end)
             Rayfield:Notify({Title = "Infinite Ammo", Content = "Ammo automatically refilled!", Duration = 3})
         else
