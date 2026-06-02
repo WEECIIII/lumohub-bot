@@ -2217,6 +2217,95 @@ SettingsTab:CreateButton({
                 end
             end,
         })
+        
+        MainTab:CreateSection("LocalPlayer")
+        
+        local autoHealLoop
+        MainTab:CreateToggle({
+            Name = "God Mode (Auto-Heal)",
+            CurrentValue = false,
+            Flag = "Uni_GodMode",
+            Callback = function(Value)
+                if Value then
+                    if autoHealLoop then autoHealLoop:Disconnect() end
+                    autoHealLoop = game:GetService("RunService").Heartbeat:Connect(function()
+                        if Player.Character and Player.Character:FindFirstChild("Humanoid") then
+                            local hum = Player.Character.Humanoid
+                            if hum.Health > 0 and hum.Health < hum.MaxHealth then
+                                pcall(function() hum.Health = hum.MaxHealth end)
+                            end
+                        end
+                    end)
+                else
+                    if autoHealLoop then autoHealLoop:Disconnect() end
+                end
+            end,
+        })
+        
+        MainTab:CreateSlider({
+            Name = "Walk Speed",
+            Range = {16, 250},
+            Increment = 1,
+            Suffix = " WS",
+            CurrentValue = 16,
+            Flag = "Uni_WalkSpeed",
+            Callback = function(Value)
+                if Player.Character and Player.Character:FindFirstChildOfClass("Humanoid") then
+                    Player.Character:FindFirstChildOfClass("Humanoid").WalkSpeed = Value
+                end
+            end,
+        })
+        
+        MainTab:CreateSlider({
+            Name = "Jump Power",
+            Range = {50, 250},
+            Increment = 1,
+            Suffix = " JP",
+            CurrentValue = 50,
+            Flag = "Uni_JumpPower",
+            Callback = function(Value)
+                if Player.Character and Player.Character:FindFirstChildOfClass("Humanoid") then
+                    Player.Character:FindFirstChildOfClass("Humanoid").JumpPower = Value
+                end
+            end,
+        })
+        
+        local uniInfJump = false
+        game:GetService("UserInputService").JumpRequest:Connect(function()
+            if uniInfJump and Player.Character and Player.Character:FindFirstChildOfClass("Humanoid") then
+                Player.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping")
+            end
+        end)
+        MainTab:CreateToggle({
+            Name = "Infinite Jump",
+            CurrentValue = false,
+            Flag = "Uni_InfJump",
+            Callback = function(Value)
+                uniInfJump = Value
+            end,
+        })
+        
+        local uniNoclip = false
+        MainTab:CreateToggle({
+            Name = "Noclip (Walk Through Walls)",
+            CurrentValue = false,
+            Flag = "Uni_Noclip",
+            Callback = function(Value)
+                uniNoclip = Value
+                if Value then
+                    if _G.Uni_Noclip then _G.Uni_Noclip:Disconnect() end
+                    _G.Uni_Noclip = game:GetService("RunService").Stepped:Connect(function()
+                        if Player.Character then
+                            for _, v in pairs(Player.Character:GetDescendants()) do
+                                if v:IsA("BasePart") then v.CanCollide = false end
+                            end
+                        end
+                    end)
+                else
+                    if _G.Uni_Noclip then _G.Uni_Noclip:Disconnect() end
+                end
+            end,
+        })
 
         Rayfield:LoadConfiguration()
     end
