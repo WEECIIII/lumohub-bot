@@ -1842,6 +1842,85 @@ SettingsTab:CreateButton({
         -- Combat Features
         MainTab:CreateSection("Weapons & Combat")
         
+        local uniEspFolder = Instance.new("Folder")
+        uniEspFolder.Name = "LumoKAT_ESP"
+        pcall(function() uniEspFolder.Parent = game:GetService("CoreGui") end)
+        
+        MainTab:CreateToggle({
+            Name = "Player ESP (Wallhacks)",
+            CurrentValue = false,
+            Flag = "KAT_ESP",
+            Callback = function(Value)
+                if Value then
+                    if _G.KAT_ESP then _G.KAT_ESP:Disconnect() end
+                    _G.KAT_ESP = game:GetService("RunService").RenderStepped:Connect(function()
+                        for _, v in pairs(game.Players:GetPlayers()) do
+                            if v ~= Player and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
+                                local h = uniEspFolder:FindFirstChild(v.Name .. "_ESP")
+                                if not h then
+                                    h = Instance.new("Highlight")
+                                    h.Name = v.Name .. "_ESP"
+                                    h.FillColor = Color3.fromRGB(255, 0, 0)
+                                    h.FillTransparency = 0.5
+                                    h.OutlineColor = Color3.fromRGB(255, 255, 255)
+                                    h.Parent = uniEspFolder
+                                end
+                                h.Adornee = v.Character
+                            end
+                        end
+                    end)
+                else
+                    if _G.KAT_ESP then _G.KAT_ESP:Disconnect() end
+                    uniEspFolder:ClearAllChildren()
+                end
+            end,
+        })
+
+        local hitboxSize = 2
+        MainTab:CreateSlider({
+            Name = "Hitbox Expander (Size)",
+            Range = {2, 20},
+            Increment = 1,
+            Suffix = " Studs",
+            CurrentValue = 2,
+            Flag = "KAT_HitboxSize",
+            Callback = function(Value)
+                hitboxSize = Value
+            end,
+        })
+        
+        MainTab:CreateToggle({
+            Name = "Enable Hitbox Expander",
+            CurrentValue = false,
+            Flag = "KAT_Hitbox",
+            Callback = function(Value)
+                if Value then
+                    if _G.KAT_Hitbox then _G.KAT_Hitbox:Disconnect() end
+                    _G.KAT_Hitbox = game:GetService("RunService").RenderStepped:Connect(function()
+                        for _, v in pairs(game.Players:GetPlayers()) do
+                            if v ~= Player and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
+                                pcall(function()
+                                    v.Character.HumanoidRootPart.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
+                                    v.Character.HumanoidRootPart.Transparency = 0.7
+                                    v.Character.HumanoidRootPart.CanCollide = false
+                                end)
+                            end
+                        end
+                    end)
+                else
+                    if _G.KAT_Hitbox then _G.KAT_Hitbox:Disconnect() end
+                    for _, v in pairs(game.Players:GetPlayers()) do
+                        if v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
+                            pcall(function()
+                                v.Character.HumanoidRootPart.Size = Vector3.new(2, 2, 1)
+                                v.Character.HumanoidRootPart.Transparency = 1
+                            end)
+                        end
+                    end
+                end
+            end,
+        })
+        
         local wallbangLoop
         MainTab:CreateToggle({
             Name = "Wallbang (Shoot Through Walls)",
