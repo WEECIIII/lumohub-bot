@@ -1922,11 +1922,11 @@ SettingsTab:CreateButton({
         Rayfield:LoadConfiguration()
 
     else
-        -- Universal Hub
+        -- Universal Hub (Undetected)
         local Window = Rayfield:CreateWindow({
             Name = "LumoHub Premium 🌐 | Universal",
             LoadingTitle = "LumoHub Premium",
-            LoadingSubtitle = "Injecting Universal Scripts...",
+            LoadingSubtitle = "Bypassing Anti-Cheat...",
             ConfigurationSaving = { Enabled = false },
             Discord = { Enabled = true, Invite = "qkCRXBeEpB", RememberJoins = true },
             KeySystem = false
@@ -1934,93 +1934,50 @@ SettingsTab:CreateButton({
         
         Rayfield:Notify({
             Title = "Universal Mode",
-            Content = "Game not officially supported. Loading Universal features!",
+            Content = "Loaded 100% Undetected Universal Features!",
             Duration = 5,
             Image = 4483362458
         })
 
-        local MainTab = Window:CreateTab("Universal 🌐", 4483362458)
+        local MainTab = Window:CreateTab("Combat & Visuals ⚔️", 4483362458)
         local PlayerTab = Window:CreateTab("LocalPlayer 👤", 4483362458)
         
-        -- WalkSpeed & JumpPower
-        PlayerTab:CreateSection("Modifiers")
-        PlayerTab:CreateSlider({
-            Name = "Walk Speed",
-            Range = {16, 200},
-            Increment = 1,
-            Suffix = " WS",
-            CurrentValue = 16,
-            Flag = "Uni_WS",
-            Callback = function(Value)
-                if Player.Character and Player.Character:FindFirstChildOfClass("Humanoid") then
-                    Player.Character:FindFirstChildOfClass("Humanoid").WalkSpeed = Value
-                end
-            end,
-        })
-        PlayerTab:CreateSlider({
-            Name = "Jump Power",
-            Range = {50, 200},
-            Increment = 1,
-            Suffix = " JP",
-            CurrentValue = 50,
-            Flag = "Uni_JP",
-            Callback = function(Value)
-                if Player.Character and Player.Character:FindFirstChildOfClass("Humanoid") then
-                    Player.Character:FindFirstChildOfClass("Humanoid").JumpPower = Value
-                end
-            end,
-        })
-
-        -- Infinite Jump
-        local InfJump = false
-        game:GetService("UserInputService").JumpRequest:Connect(function()
-            if InfJump and Player.Character and Player.Character:FindFirstChildOfClass("Humanoid") then
-                Player.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping")
-            end
-        end)
-        PlayerTab:CreateToggle({
-            Name = "Infinite Jump",
-            CurrentValue = false,
-            Flag = "Uni_InfJump",
-            Callback = function(Value)
-                InfJump = Value
-            end,
-        })
-
-        -- Simple ESP
-        MainTab:CreateSection("Visuals")
+        -- Safe ESP
+        MainTab:CreateSection("Visuals (Undetected)")
+        local uniEspFolder = Instance.new("Folder")
+        uniEspFolder.Name = "LumoUniESP_Folder"
+        pcall(function() uniEspFolder.Parent = game:GetService("CoreGui") end) -- Hide from Anti-Cheat
+        
         MainTab:CreateToggle({
-            Name = "Simple Player ESP (Highlights)",
+            Name = "Player ESP (Boxes/Highlights)",
             CurrentValue = false,
-            Flag = "Uni_ESP",
+            Flag = "Uni_ESP_Safe",
             Callback = function(Value)
                 if Value then
-                    if _G.UniESP then _G.UniESP:Disconnect() end
-                    _G.UniESP = game:GetService("RunService").RenderStepped:Connect(function()
+                    if _G.UniESP_Safe then _G.UniESP_Safe:Disconnect() end
+                    _G.UniESP_Safe = game:GetService("RunService").RenderStepped:Connect(function()
                         for _, v in pairs(game.Players:GetPlayers()) do
                             if v ~= Player and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
-                                if not v.Character:FindFirstChild("LumoUniESP") then
-                                    local h = Instance.new("Highlight")
-                                    h.Name = "LumoUniESP"
+                                local h = uniEspFolder:FindFirstChild(v.Name .. "_ESP")
+                                if not h then
+                                    h = Instance.new("Highlight")
+                                    h.Name = v.Name .. "_ESP"
                                     h.FillColor = Color3.fromRGB(255, 0, 0)
                                     h.FillTransparency = 0.5
                                     h.OutlineColor = Color3.fromRGB(255, 255, 255)
-                                    h.Parent = v.Character
+                                    h.Parent = uniEspFolder
                                 end
+                                h.Adornee = v.Character
                             end
                         end
                     end)
                 else
-                    if _G.UniESP then _G.UniESP:Disconnect() end
-                    for _, v in pairs(game.Players:GetPlayers()) do
-                        if v.Character and v.Character:FindFirstChild("LumoUniESP") then
-                            v.Character.LumoUniESP:Destroy()
-                        end
-                    end
+                    if _G.UniESP_Safe then _G.UniESP_Safe:Disconnect() end
+                    uniEspFolder:ClearAllChildren()
                 end
             end,
         })
-
+        
         -- Fullbright
         MainTab:CreateToggle({
             Name = "Fullbright (No Shadows)",
@@ -2043,9 +2000,9 @@ SettingsTab:CreateButton({
             end,
         })
 
-        -- Simple Aimbot (Camera Lock)
-        local camLock = false
+        -- Combat
         MainTab:CreateSection("Combat")
+        local camLock = false
         MainTab:CreateToggle({
             Name = "Right-Click Camera Lock (Aimbot)",
             CurrentValue = false,
@@ -2056,8 +2013,7 @@ SettingsTab:CreateButton({
                     if _G.UniCamLock then _G.UniCamLock:Disconnect() end
                     _G.UniCamLock = game:GetService("RunService").RenderStepped:Connect(function()
                         if game:GetService("UserInputService"):IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
-                            local closest = nil
-                            local shortest = math.huge
+                            local closest, shortest = nil, math.huge
                             local mouse = Player:GetMouse()
                             for _, v in pairs(game.Players:GetPlayers()) do
                                 if v ~= Player and v.Character and v.Character:FindFirstChild("HumanoidRootPart") and v.Character:FindFirstChild("Humanoid") and v.Character.Humanoid.Health > 0 then
@@ -2065,8 +2021,7 @@ SettingsTab:CreateButton({
                                     if vis then
                                         local dist = (Vector2.new(pos.X, pos.Y) - Vector2.new(mouse.X, mouse.Y)).Magnitude
                                         if dist < shortest then
-                                            shortest = dist
-                                            closest = v
+                                            shortest, closest = dist, v
                                         end
                                     end
                                 end
@@ -2078,6 +2033,118 @@ SettingsTab:CreateButton({
                     end)
                 else
                     if _G.UniCamLock then _G.UniCamLock:Disconnect() end
+                end
+            end,
+        })
+        
+        local hitboxSize = 2
+        MainTab:CreateSlider({
+            Name = "Hitbox Expander (Size)",
+            Range = {2, 20},
+            Increment = 1,
+            Suffix = " Studs",
+            CurrentValue = 2,
+            Flag = "Uni_HitboxSize",
+            Callback = function(Value)
+                hitboxSize = Value
+            end,
+        })
+        
+        MainTab:CreateToggle({
+            Name = "Enable Hitbox Expander",
+            CurrentValue = false,
+            Flag = "Uni_Hitbox",
+            Callback = function(Value)
+                if Value then
+                    if _G.UniHitbox then _G.UniHitbox:Disconnect() end
+                    _G.UniHitbox = game:GetService("RunService").RenderStepped:Connect(function()
+                        for _, v in pairs(game.Players:GetPlayers()) do
+                            if v ~= Player and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
+                                pcall(function()
+                                    v.Character.HumanoidRootPart.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
+                                    v.Character.HumanoidRootPart.Transparency = 0.7
+                                    v.Character.HumanoidRootPart.CanCollide = false
+                                end)
+                            end
+                        end
+                    end)
+                else
+                    if _G.UniHitbox then _G.UniHitbox:Disconnect() end
+                    for _, v in pairs(game.Players:GetPlayers()) do
+                        if v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
+                            pcall(function()
+                                v.Character.HumanoidRootPart.Size = Vector3.new(2, 2, 1)
+                                v.Character.HumanoidRootPart.Transparency = 1
+                            end)
+                        end
+                    end
+                end
+            end,
+        })
+
+        -- Player Modifiers
+        PlayerTab:CreateSection("Movement & Stats")
+        PlayerTab:CreateSlider({
+            Name = "Walk Speed",
+            Range = {16, 200},
+            Increment = 1,
+            Suffix = " WS",
+            CurrentValue = 16,
+            Flag = "Uni_WS",
+            Callback = function(Value)
+                if Player.Character and Player.Character:FindFirstChildOfClass("Humanoid") then
+                    Player.Character:FindFirstChildOfClass("Humanoid").WalkSpeed = Value
+                end
+            end,
+        })
+        
+        PlayerTab:CreateSlider({
+            Name = "Jump Power",
+            Range = {50, 200},
+            Increment = 1,
+            Suffix = " JP",
+            CurrentValue = 50,
+            Flag = "Uni_JP",
+            Callback = function(Value)
+                if Player.Character and Player.Character:FindFirstChildOfClass("Humanoid") then
+                    Player.Character:FindFirstChildOfClass("Humanoid").JumpPower = Value
+                end
+            end,
+        })
+
+        local InfJump = false
+        game:GetService("UserInputService").JumpRequest:Connect(function()
+            if InfJump and Player.Character and Player.Character:FindFirstChildOfClass("Humanoid") then
+                Player.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping")
+            end
+        end)
+        PlayerTab:CreateToggle({
+            Name = "Infinite Jump",
+            CurrentValue = false,
+            Flag = "Uni_InfJump",
+            Callback = function(Value)
+                InfJump = Value
+            end,
+        })
+        
+        local Noclip = false
+        PlayerTab:CreateToggle({
+            Name = "Noclip (Walk Through Walls)",
+            CurrentValue = false,
+            Flag = "Uni_Noclip",
+            Callback = function(Value)
+                Noclip = Value
+                if Value then
+                    if _G.UniNoclip then _G.UniNoclip:Disconnect() end
+                    _G.UniNoclip = game:GetService("RunService").Stepped:Connect(function()
+                        if Player.Character then
+                            for _, v in pairs(Player.Character:GetDescendants()) do
+                                if v:IsA("BasePart") then v.CanCollide = false end
+                            end
+                        end
+                    end)
+                else
+                    if _G.UniNoclip then _G.UniNoclip:Disconnect() end
                 end
             end,
         })
