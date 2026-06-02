@@ -2135,7 +2135,7 @@ task.spawn(function()
     if authGui then
         pcall(function() authGui:Destroy() end)
     end
-end -- End of LoadLumoHub function
+-- End of LoadLumoHub function
 
 -- ──────────────────────────────────────────────────────────────
 -- CUSTOM KEY AUTHENTICATION GUI
