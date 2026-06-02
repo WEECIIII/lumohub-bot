@@ -7,10 +7,16 @@ if not game:IsLoaded() then game.Loaded:Wait() end
 -- Clean up old instances to prevent screen blur bugs
 pcall(function()
     for _, v in pairs(game:GetService("CoreGui"):GetChildren()) do
-        if v.Name == "Rayfield" then v:Destroy() end
+        if v.Name == "Rayfield" or v.Name == "LumoHubAuth" then v:Destroy() end
     end
     for _, v in pairs(game:GetService("Lighting"):GetChildren()) do
         if v:IsA("BlurEffect") then v:Destroy() end
+    end
+    local lp = game:GetService("Players").LocalPlayer
+    if lp and lp:FindFirstChild("PlayerGui") then
+        for _, v in pairs(lp.PlayerGui:GetChildren()) do
+            if v.Name == "Rayfield" or v.Name == "LumoHubAuth" then v:Destroy() end
+        end
     end
 end)
 
@@ -209,7 +215,7 @@ local function LoadLumoHub(activeKey, authGui)
     local success, info = pcall(function() return game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId) end)
     local GameName = (success and info) and info.Name or "Unknown Game"
 
-    if string.find(string.lower(GameName), "garden") then
+    if game.GameId == 7436755782 or game.PlaceId == 126884695634066 or string.find(string.lower(GameName), "garden") then
             local Window = Rayfield:CreateWindow({
                 Name = "LumoHub Premium | " .. GameName,
                 Icon = 0,
@@ -428,7 +434,7 @@ local function LoadLumoHub(activeKey, authGui)
             CreateProtectionsTab(Window)
             Rayfield:LoadConfiguration()
             
-        elseif game.PlaceId == 142823291 or GameName:lower():find("murder mystery 2") then
+        elseif game.GameId == 66654135 or game.PlaceId == 142823291 or GameName:lower():find("murder mystery 2") then
         local Window = Rayfield:CreateWindow({
             Name = "LumoHub Premium 🔪 | Murder Mystery 2",
             LoadingTitle = "LumoHub Premium",
@@ -932,7 +938,7 @@ local function LoadLumoHub(activeKey, authGui)
         CreateProtectionsTab(Window)
         Rayfield:LoadConfiguration()
 
-    elseif GameName:lower():find("streetz war") or GameName:lower():find("universal") then
+    elseif game.GameId == 3993508361 or game.PlaceId == 11177482306 or GameName:lower():find("streetz") or GameName:lower():find("universal") then
             -- Streetz War 2
             local Window = Rayfield:CreateWindow({
                 Name = "LumoHub Premium | " .. GameName,
