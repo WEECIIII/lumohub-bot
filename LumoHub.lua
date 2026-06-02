@@ -239,27 +239,51 @@ local function LoadLumoHub(activeKey, authGui)
 
         local MainTab = Window:CreateTab("Main 🏠", 4483362458)
         local MovementTab = Window:CreateTab("Movement 🏃", 4483362458)
+        local ServerTab = Window:CreateTab("Server 🌐", 4483362458)
         local SettingsTab = Window:CreateTab("Settings ⚙️", 4483362458)
         
-        local function SafeTeleport(targetCFrame, speed)
-            local char = Player.Character
-            if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-            local hrp = char.HumanoidRootPart
-            local dist = (hrp.Position - targetCFrame.Position).Magnitude
-            
-            local ts = game:GetService("TweenService")
-            local ti = TweenInfo.new(dist / speed, Enum.EasingStyle.Linear)
-            local tween = ts:Create(hrp, ti, {CFrame = targetCFrame})
-            
-            local bv = Instance.new("BodyVelocity")
-            bv.Velocity = Vector3.zero
-            bv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
-            bv.Parent = hrp
-            
-            tween:Play()
-            tween.Completed:Wait()
-            if bv then bv:Destroy() end
-        end
+        ServerTab:CreateSection("Server Management")
+        
+        ServerTab:CreateButton({
+            Name = "Server Hop (Join New Server)",
+            Callback = function()
+                local HttpService = game:GetService("HttpService")
+                local TeleportService = game:GetService("TeleportService")
+                local serversApi = "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"
+                
+                local success, result = pcall(function()
+                    return game:HttpGet(serversApi)
+                end)
+                
+                if success then
+                    local decoded = HttpService:JSONDecode(result)
+                    if decoded and decoded.data then
+                        for _, server in ipairs(decoded.data) do
+                            if server.playing < server.maxPlayers and server.id ~= game.JobId then
+                                Rayfield:Notify({Title = "Server Hop", Content = "Found a server! Teleporting...", Duration = 3})
+                                TeleportService:TeleportToPlaceInstance(game.PlaceId, server.id, Player)
+                                return
+                            end
+                        end
+                    end
+                end
+                Rayfield:Notify({Title = "Error", Content = "Could not find a valid server to hop to.", Duration = 3})
+            end,
+        })
+        
+        ServerTab:CreateButton({
+            Name = "Rejoin Current Server",
+            Callback = function()
+                local TeleportService = game:GetService("TeleportService")
+                if #game.Players:GetPlayers() <= 1 then
+                    Player:Kick("\nRejoining...")
+                    task.wait()
+                    TeleportService:Teleport(game.PlaceId, Player)
+                else
+                    TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, Player)
+                end
+            end,
+        })
 
         MainTab:CreateSection("Farming & Features")
 
