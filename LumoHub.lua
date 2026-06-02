@@ -2181,6 +2181,20 @@ SettingsTab:CreateButton({
                 end
             end,
         })
+        })
+        
+        local fovCircle = Drawing.new("Circle")
+        fovCircle.Visible = false
+        fovCircle.Color = Color3.fromRGB(255, 255, 255)
+        fovCircle.Thickness = 1
+        fovCircle.NumSides = 100
+        fovCircle.Radius = 150
+        fovCircle.Filled = false
+        
+        game:GetService("RunService").RenderStepped:Connect(function()
+            local mouse = game:GetService("Players").LocalPlayer:GetMouse()
+            fovCircle.Position = Vector2.new(mouse.X, mouse.Y + 36) -- Offset for top bar
+        end)
         
         MainTab:CreateSection("Combat")
         local camLock = false
@@ -2217,6 +2231,78 @@ SettingsTab:CreateButton({
                 end
             end,
         })
+        
+        local silentAimFOV = 150
+        MainTab:CreateSlider({
+            Name = "Silent Aim FOV",
+            Range = {50, 600},
+            Increment = 10,
+            Suffix = " Radius",
+            CurrentValue = 150,
+            Flag = "Uni_SilentAimFOV",
+            Callback = function(Value)
+                silentAimFOV = Value
+                fovCircle.Radius = Value
+            end,
+        })
+        
+        local silentAimEnabled = false
+        MainTab:CreateToggle({
+            Name = "Silent Aim (Universal / Draw FOV)",
+            CurrentValue = false,
+            Flag = "Uni_SilentAim",
+            Callback = function(Value)
+                silentAimEnabled = Value
+                fovCircle.Visible = Value
+            end,
+        })
+        
+        -- Hook for Silent Aim
+        local gm = getrawmetatable(game)
+        local setreadonly = setreadonly or make_writeable
+        if gm and setreadonly then
+            setreadonly(gm, false)
+            local namecall = gm.__namecall
+            gm.__namecall = newcclosure(function(self, ...)
+                local args = {...}
+                local method = getnamecallmethod()
+                
+                if silentAimEnabled and not checkcaller() and (method == "FindPartOnRayWithIgnoreList" or method == "FindPartOnRayWithWhitelist" or method == "FindPartOnRay" or method == "Raycast") then
+                    local closestPart = nil
+                    local shortestDistance = silentAimFOV
+                    local mouse = Player:GetMouse()
+                    local mousePos = Vector2.new(mouse.X, mouse.Y)
+                    
+                    for _, v in pairs(game.Players:GetPlayers()) do
+                        if v ~= Player and v.Character and v.Character:FindFirstChild("Head") and v.Character:FindFirstChild("Humanoid") and v.Character.Humanoid.Health > 0 then
+                            local pos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(v.Character.Head.Position)
+                            if onScreen then
+                                local dist = (Vector2.new(pos.X, pos.Y) - mousePos).Magnitude
+                                if dist < shortestDistance then
+                                    closestPart = v.Character.Head
+                                    shortestDistance = dist
+                                end
+                            end
+                        end
+                    end
+                    
+                    if closestPart then
+                        local origin = args[1].Origin
+                        if method == "Raycast" then
+                            origin = args[1]
+                            local direction = (closestPart.Position - origin).Unit * 1000
+                            args[2] = direction
+                        else
+                            local direction = (closestPart.Position - origin).Unit * 1000
+                            args[1] = Ray.new(origin, direction)
+                        end
+                        return namecall(self, unpack(args))
+                    end
+                end
+                return namecall(self, ...)
+            end)
+            setreadonly(gm, true)
+        end
         
         MainTab:CreateSection("LocalPlayer")
         
