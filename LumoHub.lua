@@ -981,6 +981,7 @@ local SettingsTab = Window:CreateTab("Settings ⚙️", 4483362458)
 if _G.LumoESP_Conns then
     for _, c in pairs(_G.LumoESP_Conns) do pcall(function() c:Disconnect() end) end
 end
+pcall(function() game:GetService("RunService"):UnbindFromRenderStep("LumoESPUpdate") end)
 _G.LumoESP_Conns = {}
 
 local ESP = { 
@@ -1138,9 +1139,9 @@ for _, p in ipairs(Players:GetPlayers()) do if p ~= Player then ESP:SetupPlayer(
 table.insert(_G.LumoESP_Conns, Players.PlayerAdded:Connect(function(p) if p ~= Player then ESP:SetupPlayer(p) end end))
 table.insert(_G.LumoESP_Conns, Players.PlayerRemoving:Connect(function(p) ESP:ClearDrawings(p) end))
 
-table.insert(_G.LumoESP_Conns, RunService.RenderStepped:Connect(function()
+RunService:BindToRenderStep("LumoESPUpdate", 2500, function()
     if ESP.Enabled then ESP:Update() end
-end))
+end)
 
 ESPTab:CreateSection("Visuals & ESP")
 
