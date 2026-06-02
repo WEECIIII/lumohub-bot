@@ -2304,6 +2304,58 @@ SettingsTab:CreateButton({
             setreadonly(gm, true)
         end
         
+        local killAuraLoop
+        local killAuraRadius = 30
+        MainTab:CreateSlider({
+            Name = "Kill Aura Range",
+            Range = {10, 100},
+            Increment = 5,
+            Suffix = " Studs",
+            CurrentValue = 30,
+            Flag = "Uni_KillAuraRadius",
+            Callback = function(Value)
+                killAuraRadius = Value
+            end,
+        })
+
+        MainTab:CreateToggle({
+            Name = "Kill Aura (Physics Fling)",
+            CurrentValue = false,
+            Flag = "Uni_KillAura",
+            Callback = function(Value)
+                if Value then
+                    if killAuraLoop then killAuraLoop:Disconnect() end
+                    killAuraLoop = game:GetService("RunService").Stepped:Connect(function()
+                        if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
+                            local hrp = Player.Character.HumanoidRootPart
+                            local oldPos = hrp.CFrame
+                            
+                            for _, v in pairs(game.Players:GetPlayers()) do
+                                if v ~= Player and v.Character and v.Character:FindFirstChild("HumanoidRootPart") and v.Character:FindFirstChild("Humanoid") and v.Character.Humanoid.Health > 0 then
+                                    local dist = (hrp.Position - v.Character.HumanoidRootPart.Position).Magnitude
+                                    if dist <= killAuraRadius then
+                                        -- Fling manipulation
+                                        local thrust = Instance.new("BodyAngularVelocity")
+                                        thrust.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+                                        thrust.AngularVelocity = Vector3.new(0, 9e9, 0)
+                                        thrust.Parent = hrp
+                                        
+                                        hrp.CFrame = v.Character.HumanoidRootPart.CFrame
+                                        task.wait(0.05)
+                                        hrp.CFrame = oldPos
+                                        thrust:Destroy()
+                                    end
+                                end
+                            end
+                        end
+                    end)
+                    Rayfield:Notify({Title = "Kill Aura", Content = "Stand near players to fling and kill them instantly!", Duration = 3})
+                else
+                    if killAuraLoop then killAuraLoop:Disconnect() end
+                end
+            end,
+        })
+        
         MainTab:CreateSection("LocalPlayer")
         
         local autoHealLoop
