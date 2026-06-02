@@ -2184,6 +2184,28 @@ SettingsTab:CreateButton({
             end,
         })
         
+        })
+        
+        local osFovCircle = nil
+        if Drawing then
+            pcall(function()
+                osFovCircle = Drawing.new("Circle")
+                osFovCircle.Visible = false
+                osFovCircle.Color = Color3.fromRGB(255, 255, 255)
+                osFovCircle.Thickness = 1
+                osFovCircle.NumSides = 100
+                osFovCircle.Radius = 150
+                osFovCircle.Filled = false
+            end)
+        end
+        
+        game:GetService("RunService").RenderStepped:Connect(function()
+            if osFovCircle then
+                local mouse = game:GetService("Players").LocalPlayer:GetMouse()
+                pcall(function() osFovCircle.Position = Vector2.new(mouse.X, mouse.Y + 36) end)
+            end
+        end)
+        
         MainTab:CreateSection("Aimbot")
         local camLock = false
         MainTab:CreateToggle({
@@ -2219,6 +2241,78 @@ SettingsTab:CreateButton({
                 end
             end,
         })
+        
+        local osSilentAimFOV = 150
+        MainTab:CreateSlider({
+            Name = "Silent Aim FOV",
+            Range = {50, 600},
+            Increment = 10,
+            Suffix = " Radius",
+            CurrentValue = 150,
+            Flag = "OS_SilentAimFOV",
+            Callback = function(Value)
+                osSilentAimFOV = Value
+                if osFovCircle then pcall(function() osFovCircle.Radius = Value end) end
+            end,
+        })
+        
+        local osSilentAimEnabled = false
+        MainTab:CreateToggle({
+            Name = "Silent Aim (Bullet Magnetism)",
+            CurrentValue = false,
+            Flag = "OS_SilentAim",
+            Callback = function(Value)
+                osSilentAimEnabled = Value
+                if osFovCircle then pcall(function() osFovCircle.Visible = Value end) end
+            end,
+        })
+        
+        -- Hook for Silent Aim
+        local osGm = getrawmetatable(game)
+        local osSetreadonly = setreadonly or make_writeable
+        if osGm and osSetreadonly then
+            osSetreadonly(osGm, false)
+            local namecall = osGm.__namecall
+            osGm.__namecall = newcclosure(function(self, ...)
+                local args = {...}
+                local method = getnamecallmethod()
+                
+                if osSilentAimEnabled and not checkcaller() and (method == "FindPartOnRayWithIgnoreList" or method == "FindPartOnRayWithWhitelist" or method == "FindPartOnRay" or method == "Raycast") then
+                    local closestPart = nil
+                    local shortestDistance = osSilentAimFOV
+                    local mouse = Player:GetMouse()
+                    local mousePos = Vector2.new(mouse.X, mouse.Y)
+                    
+                    for _, v in pairs(game.Players:GetPlayers()) do
+                        if v ~= Player and v.Character and v.Character:FindFirstChild("Head") and v.Character:FindFirstChild("Humanoid") and v.Character.Humanoid.Health > 0 then
+                            local pos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(v.Character.Head.Position)
+                            if onScreen then
+                                local dist = (Vector2.new(pos.X, pos.Y) - mousePos).Magnitude
+                                if dist < shortestDistance then
+                                    closestPart = v.Character.Head
+                                    shortestDistance = dist
+                                end
+                            end
+                        end
+                    end
+                    
+                    if closestPart then
+                        local origin = args[1].Origin
+                        if method == "Raycast" then
+                            origin = args[1]
+                            local direction = (closestPart.Position - origin).Unit * 1000
+                            args[2] = direction
+                        else
+                            local direction = (closestPart.Position - origin).Unit * 1000
+                            args[1] = Ray.new(origin, direction)
+                        end
+                        return namecall(self, unpack(args))
+                    end
+                end
+                return namecall(self, ...)
+            end)
+            osSetreadonly(osGm, true)
+        end
         
         -- One Scope Player
         PlayerTab:CreateSection("Movement")
@@ -2263,6 +2357,53 @@ SettingsTab:CreateButton({
             Flag = "OS_InfJump",
             Callback = function(Value)
                 InfJump = Value
+            end,
+        })
+
+        local Noclip = false
+        PlayerTab:CreateToggle({
+            Name = "Noclip (Walk Through Walls)",
+            CurrentValue = false,
+            Flag = "OS_Noclip",
+            Callback = function(Value)
+                Noclip = Value
+                if Value then
+                    if _G.OS_Noclip then _G.OS_Noclip:Disconnect() end
+                    _G.OS_Noclip = game:GetService("RunService").Stepped:Connect(function()
+                        if Player.Character then
+                            for _, v in pairs(Player.Character:GetDescendants()) do
+                                if v:IsA("BasePart") then v.CanCollide = false end
+                            end
+                        end
+                    end)
+                else
+                    if _G.OS_Noclip then _G.OS_Noclip:Disconnect() end
+                end
+            end,
+        })
+        
+        PlayerTab:CreateSection("Utility")
+        
+        local antiAfkConnection
+        PlayerTab:CreateToggle({
+            Name = "Anti-AFK (Bypass Disconnect)",
+            CurrentValue = false,
+            Flag = "OS_AntiAFK",
+            Callback = function(Value)
+                if Value then
+                    local vu = game:GetService("VirtualUser")
+                    antiAfkConnection = game:GetService("Players").LocalPlayer.Idled:Connect(function()
+                        vu:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+                        task.wait(1)
+                        vu:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+                    end)
+                    Rayfield:Notify({Title = "Anti-AFK", Content = "You will no longer be disconnected for idling.", Duration = 3})
+                else
+                    if antiAfkConnection then
+                        antiAfkConnection:Disconnect()
+                        antiAfkConnection = nil
+                    end
+                end
             end,
         })
 
