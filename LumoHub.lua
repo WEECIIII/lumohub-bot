@@ -2081,6 +2081,43 @@ SettingsTab:CreateButton({
             end,
         })
 
+        local InfJump = false
+        game:GetService("UserInputService").JumpRequest:Connect(function()
+            if InfJump and Player.Character and Player.Character:FindFirstChildOfClass("Humanoid") then
+                Player.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping")
+            end
+        end)
+        PlayerTab:CreateToggle({
+            Name = "Infinite Jump",
+            CurrentValue = false,
+            Flag = "KAT_InfJump",
+            Callback = function(Value)
+                InfJump = Value
+            end,
+        })
+        
+        local Noclip = false
+        PlayerTab:CreateToggle({
+            Name = "Noclip (Walk Through Walls)",
+            CurrentValue = false,
+            Flag = "KAT_Noclip",
+            Callback = function(Value)
+                Noclip = Value
+                if Value then
+                    if _G.KAT_Noclip then _G.KAT_Noclip:Disconnect() end
+                    _G.KAT_Noclip = game:GetService("RunService").Stepped:Connect(function()
+                        if Player.Character then
+                            for _, v in pairs(Player.Character:GetDescendants()) do
+                                if v:IsA("BasePart") then v.CanCollide = false end
+                            end
+                        end
+                    end)
+                else
+                    if _G.KAT_Noclip then _G.KAT_Noclip:Disconnect() end
+                end
+            end,
+        })
+
         Rayfield:LoadConfiguration()
 
     else
