@@ -1449,26 +1449,27 @@ PlayerTab:CreateInput({
 -- GUN SPAWN
 -- ──────────────────────────────────────────────────────────────
 local grabtoolsFunc
+local autoGrabEnabled = false
 
-local function enableGrabTools()
+local function startGrabTools()
     local humanoid = Player.Character and Player.Character:FindFirstChildOfClass("Humanoid")
-    if not humanoid then
-        Rayfield:Notify({Title = "LumoHub", Content = "Waiting for character...", Duration = 3})
-        return
-    end
-    for _, child in ipairs(workspace:GetChildren()) do
-        if child:IsA("BackpackItem") and child:FindFirstChild("Handle") then
-            humanoid:EquipTool(child)
+    if humanoid then
+        for _, child in ipairs(workspace:GetChildren()) do
+            if child:IsA("BackpackItem") and child:FindFirstChild("Handle") then
+                humanoid:EquipTool(child)
+            end
         end
     end
+    
     if grabtoolsFunc then grabtoolsFunc:Disconnect() end
     grabtoolsFunc = workspace.ChildAdded:Connect(function(child)
-        local humanoid = Player.Character and Player.Character:FindFirstChildOfClass("Humanoid")
-        if humanoid and child:IsA("BackpackItem") and child:FindFirstChild("Handle") then
+        if not autoGrabEnabled then return end
+        local currentHumanoid = Player.Character and Player.Character:FindFirstChildOfClass("Humanoid")
+        if currentHumanoid and child:IsA("BackpackItem") and child:FindFirstChild("Handle") then
             task.spawn(function()
                 for i = 1, 5 do
                     task.wait(0.2)
-                    if humanoid:EquipTool(child) then
+                    if currentHumanoid:EquipTool(child) then
                         Rayfield:Notify({Title = "LumoHub", Content = "Equipped: " .. child.Name, Duration = 2})
                         break
                     end
@@ -1476,31 +1477,43 @@ local function enableGrabTools()
             end)
         end
     end)
-    Rayfield:Notify({Title = "LumoHub", Content = "Grabtools enabled!", Duration = 3})
 end
 
 Player.CharacterAdded:Connect(function()
-    task.spawn(function()
-        for i = 1, 5 do
-            task.wait(0.5)
-            if Player.Character and Player.Character:FindFirstChildOfClass("Humanoid") then
-                enableGrabTools()
-                break
+    if autoGrabEnabled then
+        task.spawn(function()
+            for i = 1, 5 do
+                task.wait(0.5)
+                if Player.Character and Player.Character:FindFirstChildOfClass("Humanoid") then
+                    startGrabTools()
+                    break
+                end
             end
-        end
-    end)
+        end)
+    end
 end)
 
 GunTab:CreateSection("Weapon Management")
 
-GunTab:CreateButton({
-    Name = "Activate Gun Spawn/Grab Tools",
-    Callback = function()
-        enableGrabTools()
+GunTab:CreateToggle({
+    Name = "Auto Grab Guns/Tools",
+    CurrentValue = false,
+    Flag = "AutoGrabTools",
+    Callback = function(Value)
+        autoGrabEnabled = Value
+        if Value then
+            startGrabTools()
+            Rayfield:Notify({Title = "LumoHub", Content = "Auto Grab Tools Enabled!", Duration = 3})
+        else
+            if grabtoolsFunc then
+                grabtoolsFunc:Disconnect()
+                grabtoolsFunc = nil
+            end
+            Rayfield:Notify({Title = "LumoHub", Content = "Auto Grab Tools Disabled!", Duration = 3})
+        end
     end,
 })
 
--- ──────────────────────────────────────────────────────────────
 -- MOVEMENT (Fly and Noclip)
 -- ──────────────────────────────────────────────────────────────
 local Fly = {
