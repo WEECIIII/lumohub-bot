@@ -2133,6 +2133,140 @@ SettingsTab:CreateButton({
         })
 
         Rayfield:LoadConfiguration()
+        
+    elseif game.PlaceId == 135648408848758 then
+        -- [FPS] One Scope Hub
+        local Window = Rayfield:CreateWindow({
+            Name = "LumoHub Premium 🎯 | One Scope",
+            LoadingTitle = "LumoHub Premium",
+            LoadingSubtitle = "Injecting Sniper Scripts...",
+            ConfigurationSaving = { Enabled = false },
+            Discord = { Enabled = true, Invite = "qkCRXBeEpB", RememberJoins = true },
+            KeySystem = false
+        })
+
+        local MainTab = Window:CreateTab("Combat ⚔️", 4483362458)
+        local PlayerTab = Window:CreateTab("LocalPlayer 👤", 4483362458)
+        
+        -- One Scope Combat
+        MainTab:CreateSection("Visuals")
+        local osEspFolder = Instance.new("Folder")
+        osEspFolder.Name = "LumoOS_ESP"
+        pcall(function() osEspFolder.Parent = game:GetService("CoreGui") end)
+        
+        MainTab:CreateToggle({
+            Name = "Player ESP (Wallhacks)",
+            CurrentValue = false,
+            Flag = "OS_ESP",
+            Callback = function(Value)
+                if Value then
+                    if _G.OS_ESP then _G.OS_ESP:Disconnect() end
+                    _G.OS_ESP = game:GetService("RunService").RenderStepped:Connect(function()
+                        for _, v in pairs(game.Players:GetPlayers()) do
+                            if v ~= Player and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
+                                local h = osEspFolder:FindFirstChild(v.Name .. "_ESP")
+                                if not h then
+                                    h = Instance.new("Highlight")
+                                    h.Name = v.Name .. "_ESP"
+                                    h.FillColor = Color3.fromRGB(255, 0, 0)
+                                    h.FillTransparency = 0.5
+                                    h.OutlineColor = Color3.fromRGB(255, 255, 255)
+                                    h.Parent = osEspFolder
+                                end
+                                h.Adornee = v.Character
+                            end
+                        end
+                    end)
+                else
+                    if _G.OS_ESP then _G.OS_ESP:Disconnect() end
+                    osEspFolder:ClearAllChildren()
+                end
+            end,
+        })
+        
+        MainTab:CreateSection("Aimbot")
+        local camLock = false
+        MainTab:CreateToggle({
+            Name = "Right-Click Camera Lock (Aimbot)",
+            CurrentValue = false,
+            Flag = "OS_CamLock",
+            Callback = function(Value)
+                camLock = Value
+                if Value then
+                    if _G.OS_CamLock then _G.OS_CamLock:Disconnect() end
+                    _G.OS_CamLock = game:GetService("RunService").RenderStepped:Connect(function()
+                        if game:GetService("UserInputService"):IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
+                            local closest, shortest = nil, math.huge
+                            local mouse = Player:GetMouse()
+                            for _, v in pairs(game.Players:GetPlayers()) do
+                                if v ~= Player and v.Character and v.Character:FindFirstChild("HumanoidRootPart") and v.Character:FindFirstChild("Humanoid") and v.Character.Humanoid.Health > 0 then
+                                    local pos, vis = workspace.CurrentCamera:WorldToViewportPoint(v.Character.HumanoidRootPart.Position)
+                                    if vis then
+                                        local dist = (Vector2.new(pos.X, pos.Y) - Vector2.new(mouse.X, mouse.Y)).Magnitude
+                                        if dist < shortest then
+                                            shortest, closest = dist, v
+                                        end
+                                    end
+                                end
+                            end
+                            if closest and closest.Character and closest.Character:FindFirstChild("Head") then
+                                pcall(function() workspace.CurrentCamera.CFrame = CFrame.new(workspace.CurrentCamera.CFrame.Position, closest.Character.Head.Position) end)
+                            end
+                        end
+                    end)
+                else
+                    if _G.OS_CamLock then _G.OS_CamLock:Disconnect() end
+                end
+            end,
+        })
+        
+        -- One Scope Player
+        PlayerTab:CreateSection("Movement")
+        
+        PlayerTab:CreateSlider({
+            Name = "Walk Speed",
+            Range = {16, 250},
+            Increment = 1,
+            Suffix = " WS",
+            CurrentValue = 16,
+            Flag = "OS_WS",
+            Callback = function(Value)
+                if Player.Character and Player.Character:FindFirstChildOfClass("Humanoid") then
+                    Player.Character:FindFirstChildOfClass("Humanoid").WalkSpeed = Value
+                end
+            end,
+        })
+        
+        PlayerTab:CreateSlider({
+            Name = "Jump Power",
+            Range = {50, 200},
+            Increment = 1,
+            Suffix = " JP",
+            CurrentValue = 50,
+            Flag = "OS_JP",
+            Callback = function(Value)
+                if Player.Character and Player.Character:FindFirstChildOfClass("Humanoid") then
+                    Player.Character:FindFirstChildOfClass("Humanoid").JumpPower = Value
+                end
+            end,
+        })
+
+        local InfJump = false
+        game:GetService("UserInputService").JumpRequest:Connect(function()
+            if InfJump and Player.Character and Player.Character:FindFirstChildOfClass("Humanoid") then
+                Player.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping")
+            end
+        end)
+        PlayerTab:CreateToggle({
+            Name = "Infinite Jump",
+            CurrentValue = false,
+            Flag = "OS_InfJump",
+            Callback = function(Value)
+                InfJump = Value
+            end,
+        })
+
+        Rayfield:LoadConfiguration()
 
     else
         -- Universal Hub
