@@ -215,7 +215,99 @@ local function LoadLumoHub(activeKey, authGui)
     local success, info = pcall(function() return game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId) end)
     local GameName = (success and info) and info.Name or "Unknown Game"
 
-    if game.GameId == 7436755782 or game.PlaceId == 126884695634066 or string.find(string.lower(GameName), "garden") then
+    if string.find(string.lower(GameName), "lemon") then
+        local Window = Rayfield:CreateWindow({
+            Name = "LumoHub Premium 🍋 | " .. GameName,
+            Icon = 0,
+            LoadingTitle = "LumoHub Premium",
+            LoadingSubtitle = "Injecting Developer Tools...",
+            Theme = "Default",
+            DisableRayfieldPrompts = true,
+            DisableBuildWarnings = true,
+            ConfigurationSaving = {
+                Enabled = false,
+                FolderName = "LumoHubConfig",
+                FileName = "Config"
+            },
+            Discord = {
+                Enabled = true,
+                Invite = "qkCRXBeEpB",
+                RememberJoins = true
+            },
+            KeySystem = false
+        })
+
+        local DevTab = Window:CreateTab("Developer 🛠️", 4483362458)
+        local SettingsTab = Window:CreateTab("Settings ⚙️", 4483362458)
+        
+        DevTab:CreateSection("Game Recon")
+        
+        DevTab:CreateButton({
+            Name = "Copy All Local & Module Script Paths",
+            Callback = function()
+                local scriptList = "--- LUMOHUB SCRIPT DUMP ---\n\n"
+                local count = 0
+                for _, obj in ipairs(game:GetDescendants()) do
+                    if obj:IsA("LocalScript") or obj:IsA("ModuleScript") then
+                        scriptList = scriptList .. "Name: " .. obj.Name .. " | Class: " .. obj.ClassName .. " | Path: " .. obj:GetFullName() .. "\n"
+                        count = count + 1
+                    end
+                end
+                
+                if setclipboard then
+                    setclipboard(scriptList)
+                    Rayfield:Notify({Title = "Success", Content = "Copied " .. count .. " scripts to clipboard!", Duration = 3})
+                else
+                    Rayfield:Notify({Title = "Error", Content = "Your executor does not support setclipboard.", Duration = 3})
+                    print(scriptList)
+                end
+            end,
+        })
+        
+        DevTab:CreateButton({
+            Name = "Copy All Remote Events & Functions",
+            Callback = function()
+                local remoteList = "--- LUMOHUB REMOTE DUMP ---\n\n"
+                local count = 0
+                for _, obj in ipairs(game:GetDescendants()) do
+                    if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
+                        remoteList = remoteList .. "Name: " .. obj.Name .. " | Class: " .. obj.ClassName .. " | Path: " .. obj:GetFullName() .. "\n"
+                        count = count + 1
+                    end
+                end
+                
+                if setclipboard then
+                    setclipboard(remoteList)
+                    Rayfield:Notify({Title = "Success", Content = "Copied " .. count .. " remotes to clipboard!", Duration = 3})
+                else
+                    Rayfield:Notify({Title = "Error", Content = "Your executor does not support setclipboard.", Duration = 3})
+                    print(remoteList)
+                end
+            end,
+        })
+
+        DevTab:CreateSection("Exploration Tools")
+
+        DevTab:CreateButton({
+            Name = "Load Dex Explorer (Best Tool)",
+            Callback = function()
+                Rayfield:Notify({Title = "Loading", Content = "Executing Dex Explorer...", Duration = 3})
+                loadstring(game:HttpGet("https://raw.githubusercontent.com/infyiff/backup/main/dex.lua"))()
+            end,
+        })
+        
+        SettingsTab:CreateSection("Menu Settings")
+        SettingsTab:CreateButton({
+            Name = "Unload Menu",
+            Callback = function()
+                pcall(function() Rayfield:Destroy() end)
+            end,
+        })
+
+        CreateProtectionsTab(Window)
+        Rayfield:LoadConfiguration()
+
+    elseif game.GameId == 7436755782 or game.PlaceId == 126884695634066 or string.find(string.lower(GameName), "garden") then
             local Window = Rayfield:CreateWindow({
                 Name = "LumoHub Premium | " .. GameName,
                 Icon = 0,
