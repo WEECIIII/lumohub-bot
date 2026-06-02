@@ -1825,99 +1825,105 @@ SettingsTab:CreateButton({
         CreateProtectionsTab(Window)
         Rayfield:LoadConfiguration()
 
-    else
-        -- Universal Hub (Undetected)
+    elseif game.PlaceId == 621129760 or game.GameId == 228028122 then
+        -- KAT! (Knife Ability Test) Hub
         local Window = Rayfield:CreateWindow({
-            Name = "LumoHub Premium 🌐 | Universal",
+            Name = "LumoHub Premium 🔪 | KAT!",
             LoadingTitle = "LumoHub Premium",
-            LoadingSubtitle = "Bypassing Anti-Cheat...",
+            LoadingSubtitle = "Injecting KAT Scripts...",
             ConfigurationSaving = { Enabled = false },
             Discord = { Enabled = true, Invite = "qkCRXBeEpB", RememberJoins = true },
             KeySystem = false
         })
-        
-        Rayfield:Notify({
-            Title = "Universal Mode",
-            Content = "Loaded 100% Undetected Universal Features!",
-            Duration = 5,
-            Image = 4483362458
-        })
 
-        local MainTab = Window:CreateTab("Combat & Visuals ⚔️", 4483362458)
+        local MainTab = Window:CreateTab("Combat ⚔️", 4483362458)
         local PlayerTab = Window:CreateTab("LocalPlayer 👤", 4483362458)
-        local UtilityTab = Window:CreateTab("Utility & World 🛠️", 4483362458)
-        local ServerTab = Window:CreateTab("Server 🌍", 4483362458)
+
+        -- Combat Features
+        MainTab:CreateSection("Weapons & Combat")
         
-        -- Safe ESP
-        MainTab:CreateSection("Visuals (Undetected)")
-        local uniEspFolder = Instance.new("Folder")
-        uniEspFolder.Name = "LumoUniESP_Folder"
-        pcall(function() uniEspFolder.Parent = game:GetService("CoreGui") end) -- Hide from Anti-Cheat
-        
+        local wallbangLoop
         MainTab:CreateToggle({
-            Name = "Player ESP (Boxes/Highlights)",
+            Name = "Wallbang (Shoot Through Walls)",
             CurrentValue = false,
-            Flag = "Uni_ESP_Safe",
+            Flag = "KAT_Wallbang",
             Callback = function(Value)
                 if Value then
-                    if _G.UniESP_Safe then _G.UniESP_Safe:Disconnect() end
-                    _G.UniESP_Safe = game:GetService("RunService").RenderStepped:Connect(function()
-                        for _, v in pairs(game.Players:GetPlayers()) do
-                            if v ~= Player and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
-                                local h = uniEspFolder:FindFirstChild(v.Name .. "_ESP")
-                                if not h then
-                                    h = Instance.new("Highlight")
-                                    h.Name = v.Name .. "_ESP"
-                                    h.FillColor = Color3.fromRGB(255, 0, 0)
-                                    h.FillTransparency = 0.5
-                                    h.OutlineColor = Color3.fromRGB(255, 255, 255)
-                                    h.Parent = uniEspFolder
-                                end
-                                h.Adornee = v.Character
+                    wallbangLoop = game:GetService("RunService").Stepped:Connect(function()
+                        for _, v in pairs(workspace:GetDescendants()) do
+                            if v:IsA("BasePart") and not v.Parent:FindFirstChild("Humanoid") then
+                                pcall(function() v.CanQuery = false end)
                             end
                         end
                     end)
+                    Rayfield:Notify({Title = "Wallbang", Content = "You can now shoot through map walls!", Duration = 3})
                 else
-                    if _G.UniESP_Safe then _G.UniESP_Safe:Disconnect() end
-                    uniEspFolder:ClearAllChildren()
-                end
-            end,
-        })
-        
-        -- Fullbright
-        MainTab:CreateToggle({
-            Name = "Fullbright (No Shadows)",
-            CurrentValue = false,
-            Flag = "Uni_Fullbright",
-            Callback = function(Value)
-                if Value then
-                    if _G.UniFB then _G.UniFB:Disconnect() end
-                    _G.UniFB = game:GetService("RunService").RenderStepped:Connect(function()
-                        game.Lighting.Ambient = Color3.new(1, 1, 1)
-                        game.Lighting.ColorShift_Bottom = Color3.new(1, 1, 1)
-                        game.Lighting.ColorShift_Top = Color3.new(1, 1, 1)
-                        game.Lighting.GlobalShadows = false
-                    end)
-                else
-                    if _G.UniFB then _G.UniFB:Disconnect() end
-                    game.Lighting.Ambient = Color3.fromRGB(127, 127, 127)
-                    game.Lighting.GlobalShadows = true
+                    if wallbangLoop then wallbangLoop:Disconnect() end
+                    for _, v in pairs(workspace:GetDescendants()) do
+                        if v:IsA("BasePart") and not v.Parent:FindFirstChild("Humanoid") then
+                            pcall(function() v.CanQuery = true end)
+                        end
+                    end
                 end
             end,
         })
 
-        -- Combat
-        MainTab:CreateSection("Combat")
+        local noReloadLoop
+        MainTab:CreateToggle({
+            Name = "No Reload & Rapid Fire",
+            CurrentValue = false,
+            Flag = "KAT_NoReload",
+            Callback = function(Value)
+                if Value then
+                    noReloadLoop = game:GetService("RunService").Heartbeat:Connect(function()
+                        local char = Player.Character
+                        if not char then return end
+                        
+                        local function modWeapon(tool)
+                            if not tool:IsA("Tool") then return end
+                            for _, v in ipairs(tool:GetDescendants()) do
+                                if v:IsA("ValueBase") then
+                                    local name = string.lower(v.Name)
+                                    if name == "reloadtime" or name == "firerate" or name == "cooldown" then
+                                        v.Value = 0
+                                    elseif name == "ammo" or name == "clip" or name == "maxammo" then
+                                        v.Value = 999
+                                    end
+                                end
+                            end
+                        end
+                        
+                        for _, v in ipairs(char:GetChildren()) do modWeapon(v) end
+                        if Player:FindFirstChild("Backpack") then
+                            for _, v in ipairs(Player.Backpack:GetChildren()) do modWeapon(v) end
+                        end
+                        
+                        pcall(function()
+                            for _, v in ipairs(getgc(true)) do
+                                if type(v) == "table" then
+                                    if rawget(v, "ReloadTime") then rawset(v, "ReloadTime", 0) end
+                                    if rawget(v, "FireRate") then rawset(v, "FireRate", 0) end
+                                    if rawget(v, "Ammo") and type(rawget(v, "Ammo")) == "number" then rawset(v, "Ammo", 999) end
+                                end
+                            end
+                        end)
+                    end)
+                else
+                    if noReloadLoop then noReloadLoop:Disconnect() end
+                end
+            end,
+        })
+        
         local camLock = false
         MainTab:CreateToggle({
             Name = "Right-Click Camera Lock (Aimbot)",
             CurrentValue = false,
-            Flag = "Uni_CamLock",
+            Flag = "KAT_CamLock",
             Callback = function(Value)
                 camLock = Value
                 if Value then
-                    if _G.UniCamLock then _G.UniCamLock:Disconnect() end
-                    _G.UniCamLock = game:GetService("RunService").RenderStepped:Connect(function()
+                    if _G.KAT_CamLock then _G.KAT_CamLock:Disconnect() end
+                    _G.KAT_CamLock = game:GetService("RunService").RenderStepped:Connect(function()
                         if game:GetService("UserInputService"):IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
                             local closest, shortest = nil, math.huge
                             local mouse = Player:GetMouse()
@@ -1938,65 +1944,43 @@ SettingsTab:CreateButton({
                         end
                     end)
                 else
-                    if _G.UniCamLock then _G.UniCamLock:Disconnect() end
+                    if _G.KAT_CamLock then _G.KAT_CamLock:Disconnect() end
                 end
             end,
         })
+
+        -- Player Features
+        PlayerTab:CreateSection("God Mode & Defenses")
         
-        local hitboxSize = 2
-        MainTab:CreateSlider({
-            Name = "Hitbox Expander (Size)",
-            Range = {2, 20},
-            Increment = 1,
-            Suffix = " Studs",
-            CurrentValue = 2,
-            Flag = "Uni_HitboxSize",
-            Callback = function(Value)
-                hitboxSize = Value
-            end,
-        })
-        
-        MainTab:CreateToggle({
-            Name = "Enable Hitbox Expander",
+        PlayerTab:CreateToggle({
+            Name = "KAT God Mode (Invincible)",
             CurrentValue = false,
-            Flag = "Uni_Hitbox",
+            Flag = "KAT_GodMode",
             Callback = function(Value)
                 if Value then
-                    if _G.UniHitbox then _G.UniHitbox:Disconnect() end
-                    _G.UniHitbox = game:GetService("RunService").RenderStepped:Connect(function()
-                        for _, v in pairs(game.Players:GetPlayers()) do
-                            if v ~= Player and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
-                                pcall(function()
-                                    v.Character.HumanoidRootPart.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
-                                    v.Character.HumanoidRootPart.Transparency = 0.7
-                                    v.Character.HumanoidRootPart.CanCollide = false
-                                end)
+                    if Player.Character then
+                        pcall(function()
+                            -- Removing hitboxes makes you immune to knives and guns in KAT
+                            if Player.Character:FindFirstChild("Head") then
+                                Player.Character.Head:Destroy()
                             end
-                        end
-                    end)
-                else
-                    if _G.UniHitbox then _G.UniHitbox:Disconnect() end
-                    for _, v in pairs(game.Players:GetPlayers()) do
-                        if v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
-                            pcall(function()
-                                v.Character.HumanoidRootPart.Size = Vector3.new(2, 2, 1)
-                                v.Character.HumanoidRootPart.Transparency = 1
-                            end)
-                        end
+                            if Player.Character:FindFirstChild("Hitbox") then
+                                Player.Character.Hitbox:Destroy()
+                            end
+                        end)
+                        Rayfield:Notify({Title = "God Mode", Content = "You are now immune to most attacks! (Reset character to disable)", Duration = 4})
                     end
                 end
             end,
         })
 
-        -- Player Modifiers
-        PlayerTab:CreateSection("Movement & Stats")
         PlayerTab:CreateSlider({
             Name = "Walk Speed",
             Range = {16, 200},
             Increment = 1,
             Suffix = " WS",
             CurrentValue = 16,
-            Flag = "Uni_WS",
+            Flag = "KAT_WS",
             Callback = function(Value)
                 if Player.Character and Player.Character:FindFirstChildOfClass("Humanoid") then
                     Player.Character:FindFirstChildOfClass("Humanoid").WalkSpeed = Value
@@ -2010,7 +1994,7 @@ SettingsTab:CreateButton({
             Increment = 1,
             Suffix = " JP",
             CurrentValue = 50,
-            Flag = "Uni_JP",
+            Flag = "KAT_JP",
             Callback = function(Value)
                 if Player.Character and Player.Character:FindFirstChildOfClass("Humanoid") then
                     Player.Character:FindFirstChildOfClass("Humanoid").JumpPower = Value
@@ -2018,196 +2002,49 @@ SettingsTab:CreateButton({
             end,
         })
 
-        local InfJump = false
-        game:GetService("UserInputService").JumpRequest:Connect(function()
-            if InfJump and Player.Character and Player.Character:FindFirstChildOfClass("Humanoid") then
-                Player.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping")
-            end
-        end)
-        PlayerTab:CreateToggle({
-            Name = "Infinite Jump",
-            CurrentValue = false,
-            Flag = "Uni_InfJump",
-            Callback = function(Value)
-                InfJump = Value
-            end,
-        })
-        
-        local Noclip = false
-        PlayerTab:CreateToggle({
-            Name = "Noclip (Walk Through Walls)",
-            CurrentValue = false,
-            Flag = "Uni_Noclip",
-            Callback = function(Value)
-                Noclip = Value
-                if Value then
-                    if _G.UniNoclip then _G.UniNoclip:Disconnect() end
-                    _G.UniNoclip = game:GetService("RunService").Stepped:Connect(function()
-                        if Player.Character then
-                            for _, v in pairs(Player.Character:GetDescendants()) do
-                                if v:IsA("BasePart") then v.CanCollide = false end
-                            end
-                        end
-                    end)
-                else
-                    if _G.UniNoclip then _G.UniNoclip:Disconnect() end
-                end
-            end,
-        })
-        
-        PlayerTab:CreateToggle({
-            Name = "Force First Person",
-            CurrentValue = false,
-            Flag = "Uni_FFP",
-            Callback = function(Value)
-                if Value then
-                    Player.CameraMode = Enum.CameraMode.LockFirstPerson
-                else
-                    Player.CameraMode = Enum.CameraMode.Classic
-                end
-            end,
-        })
-        
-        PlayerTab:CreateLabel("⚠️ First Person forcing can be detected in some games.")
-        
-        PlayerTab:CreateToggle({
-            Name = "Pseudo God Mode (Delete Hitboxes)",
-            CurrentValue = false,
-            Flag = "Uni_GodMode",
-            Callback = function(Value)
-                if Value then
-                    if Player.Character then
-                        pcall(function()
-                            -- Deleting right arm/leg usually breaks most weapon hit detection systems
-                            if Player.Character:FindFirstChild("Right Arm") then Player.Character["Right Arm"]:Destroy() end
-                            if Player.Character:FindFirstChild("RightHand") then Player.Character["RightHand"]:Destroy() end
-                            if Player.Character:FindFirstChild("RightUpperArm") then Player.Character["RightUpperArm"]:Destroy() end
-                        end)
-                    end
-                end
-            end,
-        })
-        
-        PlayerTab:CreateLabel("⚠️ Pseudo God Mode breaks your character model permanently until reset.")
-        
-        PlayerTab:CreateSection("Teleportation")
-        
-        local selectedPlayerToTP = nil
-        local tpDropdown = PlayerTab:CreateDropdown({
-            Name = "Select Player to Teleport To",
-            Options = {"Select a Player"},
-            CurrentOption = {"Select a Player"},
-            MultipleOptions = false,
-            Flag = "Uni_TPDropdown",
-            Callback = function(Option)
-                selectedPlayerToTP = Option[1]
-            end,
-        })
-        
-        PlayerTab:CreateButton({
-            Name = "Refresh Player List",
-            Callback = function()
-                local playerNames = {}
-                for _, v in pairs(game.Players:GetPlayers()) do
-                    if v ~= Player then
-                        table.insert(playerNames, v.Name)
-                    end
-                end
-                tpDropdown:Refresh(playerNames, true)
-            end,
-        })
-        
-        PlayerTab:CreateButton({
-            Name = "Teleport to Player",
-            Callback = function()
-                if selectedPlayerToTP and selectedPlayerToTP ~= "Select a Player" then
-                    local targetPlayer = game.Players:FindFirstChild(selectedPlayerToTP)
-                    if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                        if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
-                            Player.Character.HumanoidRootPart.CFrame = targetPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
-                            Rayfield:Notify({Title = "Teleported", Content = "Successfully teleported to " .. targetPlayer.Name, Duration = 2})
-                        end
-                    end
-                else
-                    Rayfield:Notify({Title = "Error", Content = "Please select a valid player first.", Duration = 2})
-                end
-            end,
-        })
+        Rayfield:LoadConfiguration()
 
-        -- Utility Tab
-        UtilityTab:CreateSection("Building Tools (Client-Sided)")
-        UtilityTab:CreateButton({
-            Name = "Give Btools (F3X)",
+    else
+        -- Unsupported Game Fallback
+        local Window = Rayfield:CreateWindow({
+            Name = "LumoHub Premium ❌ | Unsupported",
+            LoadingTitle = "LumoHub Premium",
+            LoadingSubtitle = "Game Not Supported",
+            ConfigurationSaving = { Enabled = false },
+            Discord = {
+                Enabled = true,
+                Invite = "qkCRXBeEpB",
+                RememberJoins = true
+            },
+            KeySystem = false
+        })
+        
+        Rayfield:Notify({
+            Title = "Game Not Supported",
+            Content = "LumoHub doesn't have specific cheats for this game yet.",
+            Duration = 5,
+            Image = 4483362458
+        })
+        
+        local MainTab = Window:CreateTab("Unsupported ❌", 4483362458)
+        MainTab:CreateSection("Unsupported")
+        MainTab:CreateParagraph({
+            Title = "Game Not Supported",
+            Content = "We don't have a dedicated cheat for this game yet.\n\nYou can see all of our supported games from the Discord!"
+        })
+        
+        MainTab:CreateButton({
+            Name = "Copy Discord Link",
             Callback = function()
-                local btools = Instance.new("HopperBin")
-                btools.BinType = Enum.BinType.Clone
-                btools.Parent = Player:WaitForChild("Backpack")
-                
-                local btools2 = Instance.new("HopperBin")
-                btools2.BinType = Enum.BinType.Hammer
-                btools2.Parent = Player:WaitForChild("Backpack")
-                
-                local btools3 = Instance.new("HopperBin")
-                btools3.BinType = Enum.BinType.Grab
-                btools3.Parent = Player:WaitForChild("Backpack")
-                
-                Rayfield:Notify({Title = "Btools Given", Content = "Classic Btools have been added to your inventory.", Duration = 3})
+                if setclipboard then
+                    setclipboard("https://discord.gg/qkCRXBeEpB")
+                    Rayfield:Notify({Title = "Copied!", Content = "Discord link copied to clipboard.", Duration = 3, Image = 4483362458})
+                end
             end,
         })
         
-        UtilityTab:CreateButton({
-            Name = "Delete Invisible Walls",
-            Callback = function()
-                local count = 0
-                for _, v in pairs(workspace:GetDescendants()) do
-                    if v:IsA("BasePart") and v.Transparency >= 1 and v.CanCollide == true and v.Name ~= "HumanoidRootPart" then
-                        v:Destroy()
-                        count = count + 1
-                    end
-                end
-                Rayfield:Notify({Title = "Walls Deleted", Content = "Deleted " .. count .. " invisible barriers.", Duration = 3})
-            end,
-        })
-
-        -- Server Tab
-        ServerTab:CreateSection("Server Management")
-        ServerTab:CreateButton({
-            Name = "Rejoin Current Server",
-            Callback = function()
-                Rayfield:Notify({Title = "Rejoining", Content = "Rejoining the same server...", Duration = 3})
-                game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, game.JobId, Player)
-            end,
-        })
-        
-        ServerTab:CreateButton({
-            Name = "Server Hop (Find New Server)",
-            Callback = function()
-                Rayfield:Notify({Title = "Server Hopping", Content = "Finding a new server...", Duration = 3})
-                local HttpService = game:GetService("HttpService")
-                local TeleportService = game:GetService("TeleportService")
-                
-                local function hop()
-                    local servers = {}
-                    local req = request({Url = "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Desc&limit=100"})
-                    if req and req.StatusCode == 200 then
-                        local body = HttpService:JSONDecode(req.Body)
-                        if body and body.data then
-                            for _, v in pairs(body.data) do
-                                if type(v) == "table" and v.playing < v.maxPlayers and v.id ~= game.JobId then
-                                    table.insert(servers, 1, v.id)
-                                end
-                            end
-                        end
-                        if #servers > 0 then
-                            TeleportService:TeleportToPlaceInstance(game.PlaceId, servers[math.random(1, #servers)], Player)
-                        else
-                            Rayfield:Notify({Title = "Error", Content = "Could not find a different server.", Duration = 3})
-                        end
-                    end
-                end
-                pcall(hop)
-            end,
-        })
+        Rayfield:LoadConfiguration()
+    end
     end
 end
 
