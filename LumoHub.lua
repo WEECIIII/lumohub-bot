@@ -2045,7 +2045,6 @@ SettingsTab:CreateButton({
         
         Rayfield:LoadConfiguration()
     end
-    end
 end
 
 -- ──────────────────────────────────────────────────────────────
@@ -2135,6 +2134,7 @@ task.spawn(function()
     -- Destroy the Auth GUI mask completely after Rayfield has fully loaded and created tabs
     if authGui then
         pcall(function() authGui:Destroy() end)
+    end
 end -- End of LoadLumoHub function
 
 -- ──────────────────────────────────────────────────────────────
