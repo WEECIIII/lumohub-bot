@@ -2150,37 +2150,113 @@ SettingsTab:CreateButton({
         
         -- One Scope Combat
         MainTab:CreateSection("Visuals")
-        local osEspFolder = Instance.new("Folder")
-        osEspFolder.Name = "LumoOS_ESP"
-        pcall(function() osEspFolder.Parent = game:GetService("CoreGui") end)
+        local osEspSettings = {
+            Boxes = false,
+            Tracers = false,
+            Names = false
+        }
+        
+        local osEspDrawings = {}
+        
+        local function clearOSEsp()
+            for _, drawings in pairs(osEspDrawings) do
+                if drawings.Box then drawings.Box:Remove() end
+                if drawings.Tracer then drawings.Tracer:Remove() end
+                if drawings.Name then drawings.Name:Remove() end
+            end
+            osEspDrawings = {}
+        end
+        
+        game:GetService("RunService").RenderStepped:Connect(function()
+            local Camera = workspace.CurrentCamera
+            for _, v in pairs(game.Players:GetPlayers()) do
+                if v ~= Player and v.Character and v.Character:FindFirstChild("HumanoidRootPart") and v.Character:FindFirstChild("Humanoid") and v.Character.Humanoid.Health > 0 then
+                    local hrp = v.Character.HumanoidRootPart
+                    local head = v.Character:FindFirstChild("Head")
+                    local pos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
+                    
+                    if not osEspDrawings[v] then
+                        osEspDrawings[v] = {}
+                        if Drawing then
+                            pcall(function()
+                                osEspDrawings[v].Box = Drawing.new("Square")
+                                osEspDrawings[v].Box.Color = Color3.fromRGB(255, 0, 0)
+                                osEspDrawings[v].Box.Thickness = 1
+                                osEspDrawings[v].Box.Filled = false
+                                osEspDrawings[v].Box.Transparency = 1
+                                
+                                osEspDrawings[v].Tracer = Drawing.new("Line")
+                                osEspDrawings[v].Tracer.Color = Color3.fromRGB(255, 0, 0)
+                                osEspDrawings[v].Tracer.Thickness = 1
+                                osEspDrawings[v].Tracer.Transparency = 1
+                                
+                                osEspDrawings[v].Name = Drawing.new("Text")
+                                osEspDrawings[v].Name.Color = Color3.fromRGB(255, 255, 255)
+                                osEspDrawings[v].Name.Size = 16
+                                osEspDrawings[v].Name.Center = true
+                                osEspDrawings[v].Name.Outline = true
+                            end)
+                        end
+                    end
+                    
+                    local drawings = osEspDrawings[v]
+                    if drawings.Box then
+                        if onScreen and head then
+                            local headPos = Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 0.5, 0))
+                            local legPos = Camera:WorldToViewportPoint(hrp.Position - Vector3.new(0, 3, 0))
+                            local height = math.abs(headPos.Y - legPos.Y)
+                            local width = height / 2
+                            
+                            drawings.Box.Size = Vector2.new(width, height)
+                            drawings.Box.Position = Vector2.new(pos.X - width / 2, headPos.Y)
+                            drawings.Box.Visible = osEspSettings.Boxes
+                            
+                            drawings.Tracer.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
+                            drawings.Tracer.To = Vector2.new(pos.X, pos.Y)
+                            drawings.Tracer.Visible = osEspSettings.Tracers
+                            
+                            drawings.Name.Text = v.Name
+                            drawings.Name.Position = Vector2.new(pos.X, headPos.Y - 20)
+                            drawings.Name.Visible = osEspSettings.Names
+                        else
+                            drawings.Box.Visible = false
+                            drawings.Tracer.Visible = false
+                            drawings.Name.Visible = false
+                        end
+                    end
+                elseif osEspDrawings[v] then
+                    if osEspDrawings[v].Box then osEspDrawings[v].Box:Remove() end
+                    if osEspDrawings[v].Tracer then osEspDrawings[v].Tracer:Remove() end
+                    if osEspDrawings[v].Name then osEspDrawings[v].Name:Remove() end
+                    osEspDrawings[v] = nil
+                end
+            end
+        end)
         
         MainTab:CreateToggle({
-            Name = "Player ESP (Wallhacks)",
+            Name = "Player Boxes",
             CurrentValue = false,
-            Flag = "OS_ESP",
+            Flag = "OS_ESP_Boxes",
             Callback = function(Value)
-                if Value then
-                    if _G.OS_ESP then _G.OS_ESP:Disconnect() end
-                    _G.OS_ESP = game:GetService("RunService").RenderStepped:Connect(function()
-                        for _, v in pairs(game.Players:GetPlayers()) do
-                            if v ~= Player and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
-                                local h = osEspFolder:FindFirstChild(v.Name .. "_ESP")
-                                if not h then
-                                    h = Instance.new("Highlight")
-                                    h.Name = v.Name .. "_ESP"
-                                    h.FillColor = Color3.fromRGB(255, 0, 0)
-                                    h.FillTransparency = 0.5
-                                    h.OutlineColor = Color3.fromRGB(255, 255, 255)
-                                    h.Parent = osEspFolder
-                                end
-                                h.Adornee = v.Character
-                            end
-                        end
-                    end)
-                else
-                    if _G.OS_ESP then _G.OS_ESP:Disconnect() end
-                    osEspFolder:ClearAllChildren()
-                end
+                osEspSettings.Boxes = Value
+            end,
+        })
+        
+        MainTab:CreateToggle({
+            Name = "Player Tracers",
+            CurrentValue = false,
+            Flag = "OS_ESP_Tracers",
+            Callback = function(Value)
+                osEspSettings.Tracers = Value
+            end,
+        })
+        
+        MainTab:CreateToggle({
+            Name = "Player Names",
+            CurrentValue = false,
+            Flag = "OS_ESP_Names",
+            Callback = function(Value)
+                osEspSettings.Names = Value
             end,
         })
         local osFovCircle = nil
@@ -2379,28 +2455,16 @@ SettingsTab:CreateButton({
             end,
         })
         
-        PlayerTab:CreateSection("Utility")
+        CreateProtectionsTab(Window)
         
-        local antiAfkConnection
-        PlayerTab:CreateToggle({
-            Name = "Anti-AFK (Bypass Disconnect)",
-            CurrentValue = false,
-            Flag = "OS_AntiAFK",
-            Callback = function(Value)
-                if Value then
-                    local vu = game:GetService("VirtualUser")
-                    antiAfkConnection = game:GetService("Players").LocalPlayer.Idled:Connect(function()
-                        vu:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
-                        task.wait(1)
-                        vu:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
-                    end)
-                    Rayfield:Notify({Title = "Anti-AFK", Content = "You will no longer be disconnected for idling.", Duration = 3})
-                else
-                    if antiAfkConnection then
-                        antiAfkConnection:Disconnect()
-                        antiAfkConnection = nil
-                    end
-                end
+        local SettingsTab = Window:CreateTab("Settings ⚙️", 4483362458)
+        SettingsTab:CreateSection("Menu Settings")
+        SettingsTab:CreateButton({
+            Name = "Unload Menu",
+            Callback = function()
+                clearOSEsp()
+                if osFovCircle then pcall(function() osFovCircle:Remove() end) end
+                pcall(function() Rayfield:Destroy() end)
             end,
         })
 
