@@ -239,83 +239,57 @@ local function LoadLumoHub(activeKey, authGui)
 
         local MainTab = Window:CreateTab("Main 🏠", 4483362458)
         local SettingsTab = Window:CreateTab("Settings ⚙️", 4483362458)
-        
-        local function getTycoons()
-            local tycoons = {}
-            for _, v in ipairs(workspace:GetChildren()) do
-                if string.find(v.Name, "Tycoon") then
-                    table.insert(tycoons, v)
-                end
-            end
-            return tycoons
-        end
 
-        local function getCash()
-            local leaderstats = game.Players.LocalPlayer:FindFirstChild("leaderstats")
-            if leaderstats then
-                for _, stat in ipairs(leaderstats:GetChildren()) do
-                    if string.find(string.lower(stat.Name), "cash") or string.find(string.lower(stat.Name), "money") or string.find(string.lower(stat.Name), "lemon") then
-                        return stat.Value
-                    end
-                end
-            end
-            return 999e9 -- fallback if we can't find money
-        end
+        local purchaseRemotes = {}
+        local upgradeRemotes = {}
+        local rebirthRemote = nil
+        local evolveRemote = nil
+        local ascendRemote = nil
+        local phoneRemote = nil
+        local clickDetectors = {}
 
-        local function canAfford(buttonPart)
-            local price = buttonPart:FindFirstChild("Price") or buttonPart:FindFirstChild("Cost")
-            if price and price:IsA("ValueBase") then
-                return getCash() >= tonumber(price.Value)
-            end
-            
-            -- Try to parse from a SurfaceGui or BillboardGui
-            for _, gui in ipairs(buttonPart:GetDescendants()) do
-                if gui:IsA("TextLabel") and string.find(gui.Text, "%$") then
-                    local parsedPrice = string.match(gui.Text, "%$([%d%.]+)")
-                    if parsedPrice then
-                        return getCash() >= tonumber(parsedPrice)
-                    end
-                end
-            end
-            return true
-        end
-
-        MainTab:CreateSection("Auto Farming")
-        
-        local autoCollect = false
-        MainTab:CreateToggle({
-            Name = "Auto Collect Cash",
-            CurrentValue = false,
-            Flag = "Lemons_AutoCollect",
-            Callback = function(Value)
-                autoCollect = Value
-                if autoCollect then
-                    task.spawn(function()
-                        while autoCollect do
-                            local char = game.Players.LocalPlayer.Character
-                            if char and char:FindFirstChild("HumanoidRootPart") then
-                                for _, tycoon in ipairs(getTycoons()) do
-                                    for _, v in ipairs(tycoon:GetDescendants()) do
-                                        if v:IsA("TouchInterest") and v.Parent then
-                                            local pName = string.lower(v.Parent.Name)
-                                            if string.find(pName, "giver") or string.find(pName, "collect") or string.find(pName, "cash") or string.find(pName, "drop") then
-                                                firetouchinterest(char.HumanoidRootPart, v.Parent, 0)
-                                                firetouchinterest(char.HumanoidRootPart, v.Parent, 1)
-                                            end
-                                        end
+        task.spawn(function()
+            while task.wait(3) do
+                local newP = {}
+                local newU = {}
+                local newC = {}
+                for _, tycoon in ipairs(workspace:GetChildren()) do
+                    if string.find(tycoon.Name, "Tycoon") then
+                        local purchases = tycoon:FindFirstChild("Purchases")
+                        if purchases then
+                            for _, obj in ipairs(purchases:GetDescendants()) do
+                                if obj:IsA("RemoteFunction") then
+                                    if obj.Name == "Purchase" then
+                                        table.insert(newP, obj)
+                                    elseif obj.Name == "Upgrade" then
+                                        table.insert(newU, obj)
                                     end
+                                elseif obj:IsA("ClickDetector") then
+                                    table.insert(newC, obj)
                                 end
                             end
-                            task.wait(1)
                         end
-                    end)
+                        
+                        local remotes = tycoon:FindFirstChild("Remotes")
+                        if remotes then
+                            rebirthRemote = remotes:FindFirstChild("Rebirth")
+                            evolveRemote = remotes:FindFirstChild("Evolve")
+                            ascendRemote = remotes:FindFirstChild("Ascend")
+                            phoneRemote = remotes:FindFirstChild("PhoneOffer")
+                        end
+                    end
                 end
-            end,
-        })
+                purchaseRemotes = newP
+                upgradeRemotes = newU
+                clickDetectors = newC
+            end
+        end)
+
+        MainTab:CreateSection("Auto Farming (LAG FREE)")
         
         local autoClicker = false
         MainTab:CreateToggle({
-            Name = "Auto Clicker (Lemon Stand)",
+            Name = "Auto Click Lemon Stand",
             CurrentValue = false,
             Flag = "Lemons_AutoClicker",
             Callback = function(Value)
@@ -323,12 +297,8 @@ local function LoadLumoHub(activeKey, authGui)
                 if autoClicker then
                     task.spawn(function()
                         while autoClicker do
-                            for _, tycoon in ipairs(getTycoons()) do
-                                for _, v in ipairs(tycoon:GetDescendants()) do
-                                    if v:IsA("ClickDetector") then
-                                        fireclickdetector(v)
-                                    end
-                                end
+                            for _, cd in ipairs(clickDetectors) do
+                                pcall(function() fireclickdetector(cd) end)
                             end
                             task.wait(0.1)
                         end
@@ -339,7 +309,7 @@ local function LoadLumoHub(activeKey, authGui)
         
         local autoBuy = false
         MainTab:CreateToggle({
-            Name = "Auto Buy (Everything)",
+            Name = "Auto Buy Buttons",
             CurrentValue = false,
             Flag = "Lemons_AutoBuy",
             Callback = function(Value)
@@ -347,21 +317,10 @@ local function LoadLumoHub(activeKey, authGui)
                 if autoBuy then
                     task.spawn(function()
                         while autoBuy do
-                            for _, tycoon in ipairs(getTycoons()) do
-                                local purchases = tycoon:FindFirstChild("Purchases")
-                                if purchases then
-                                    for _, obj in ipairs(purchases:GetDescendants()) do
-                                        if not autoBuy then break end
-                                        if obj:IsA("RemoteFunction") and obj.Name == "Purchase" then
-                                            if canAfford(obj.Parent) then
-                                                task.spawn(function() pcall(function() obj:InvokeServer() end) end)
-                                                task.wait(0.1)
-                                            end
-                                        end
-                                    end
-                                end
+                            for _, remote in ipairs(purchaseRemotes) do
+                                task.spawn(function() pcall(function() remote:InvokeServer() end) end)
                             end
-                            task.wait(2)
+                            task.wait(1)
                         end
                     end)
                 end
@@ -370,7 +329,7 @@ local function LoadLumoHub(activeKey, authGui)
 
         local autoUpgrade = false
         MainTab:CreateToggle({
-            Name = "Auto Upgrade",
+            Name = "Auto Upgrade Buttons",
             CurrentValue = false,
             Flag = "Lemons_AutoUpgrade",
             Callback = function(Value)
@@ -378,21 +337,10 @@ local function LoadLumoHub(activeKey, authGui)
                 if autoUpgrade then
                     task.spawn(function()
                         while autoUpgrade do
-                            for _, tycoon in ipairs(getTycoons()) do
-                                local purchases = tycoon:FindFirstChild("Purchases")
-                                if purchases then
-                                    for _, obj in ipairs(purchases:GetDescendants()) do
-                                        if not autoUpgrade then break end
-                                        if obj:IsA("RemoteFunction") and obj.Name == "Upgrade" then
-                                            if canAfford(obj.Parent) then
-                                                task.spawn(function() pcall(function() obj:InvokeServer() end) end)
-                                                task.wait(0.1)
-                                            end
-                                        end
-                                    end
-                                end
+                            for _, remote in ipairs(upgradeRemotes) do
+                                task.spawn(function() pcall(function() remote:InvokeServer() end) end)
                             end
-                            task.wait(2)
+                            task.wait(1)
                         end
                     end)
                 end
@@ -411,15 +359,7 @@ local function LoadLumoHub(activeKey, authGui)
                 if autoRebirth then
                     task.spawn(function()
                         while autoRebirth do
-                            for _, tycoon in ipairs(getTycoons()) do
-                                local remotes = tycoon:FindFirstChild("Remotes")
-                                if remotes then
-                                    local rebirth = remotes:FindFirstChild("Rebirth")
-                                    if rebirth and rebirth:IsA("RemoteFunction") then
-                                        task.spawn(function() pcall(function() rebirth:InvokeServer() end) end)
-                                    end
-                                end
-                            end
+                            if rebirthRemote then pcall(function() rebirthRemote:InvokeServer() end) end
                             task.wait(5)
                         end
                     end)
@@ -437,19 +377,8 @@ local function LoadLumoHub(activeKey, authGui)
                 if autoEvolve then
                     task.spawn(function()
                         while autoEvolve do
-                            for _, tycoon in ipairs(getTycoons()) do
-                                local remotes = tycoon:FindFirstChild("Remotes")
-                                if remotes then
-                                    local evolve = remotes:FindFirstChild("Evolve")
-                                    local ascend = remotes:FindFirstChild("Ascend")
-                                    if evolve and evolve:IsA("RemoteFunction") then
-                                        task.spawn(function() pcall(function() evolve:InvokeServer() end) end)
-                                    end
-                                    if ascend and ascend:IsA("RemoteFunction") then
-                                        task.spawn(function() pcall(function() ascend:InvokeServer() end) end)
-                                    end
-                                end
-                            end
+                            if evolveRemote then pcall(function() evolveRemote:InvokeServer() end) end
+                            if ascendRemote then pcall(function() ascendRemote:InvokeServer() end) end
                             task.wait(5)
                         end
                     end)
@@ -467,15 +396,7 @@ local function LoadLumoHub(activeKey, authGui)
                 if autoPhone then
                     task.spawn(function()
                         while autoPhone do
-                            for _, tycoon in ipairs(getTycoons()) do
-                                local remotes = tycoon:FindFirstChild("Remotes")
-                                if remotes then
-                                    local offer = remotes:FindFirstChild("PhoneOffer")
-                                    if offer and offer:IsA("RemoteEvent") then
-                                        pcall(function() offer:FireServer(true) end)
-                                    end
-                                end
-                            end
+                            if phoneRemote then pcall(function() phoneRemote:FireServer(true) end) end
                             task.wait(3)
                         end
                     end)
