@@ -284,31 +284,32 @@ local function LoadLumoHub(activeKey, authGui)
             end,
         })
 
-        local flashStepEnabled = false
-        local flashStepConn
+        local flashStepDistance = 10
         MovementTab:CreateSection("Movement Bypasses")
-        MovementTab:CreateToggle({
-            Name = "Flash Step (Walk through walls)",
-            CurrentValue = false,
-            Flag = "Brainrot_FlashStep",
+        
+        MovementTab:CreateSlider({
+            Name = "Flash Step Distance",
+            Range = {2, 30},
+            Increment = 1,
+            Suffix = " Studs",
+            CurrentValue = 10,
+            Flag = "Brainrot_FlashStepDist",
             Callback = function(Value)
-                flashStepEnabled = Value
-                if Value then
-                    if flashStepConn then flashStepConn:Disconnect() end
-                    flashStepConn = RunService.Stepped:Connect(function()
-                        if not flashStepEnabled or not Player.Character then return end
-                        -- Loop through character parts and disable collision
-                        for _, part in ipairs(Player.Character:GetDescendants()) do
-                            if part:IsA("BasePart") and part.CanCollide then
-                                part.CanCollide = false
-                            end
-                        end
-                    end)
-                else
-                    if flashStepConn then
-                        flashStepConn:Disconnect()
-                        flashStepConn = nil
-                    end
+                flashStepDistance = Value
+            end,
+        })
+
+        MovementTab:CreateKeybind({
+            Name = "Flash Step Keybind",
+            CurrentKeybind = "C",
+            HoldToInteract = false,
+            Flag = "Brainrot_FlashStepKey",
+            Callback = function()
+                local char = Player.Character
+                if char and char:FindFirstChild("HumanoidRootPart") then
+                    local hrp = char.HumanoidRootPart
+                    local lookVector = hrp.CFrame.LookVector
+                    hrp.CFrame = hrp.CFrame + (lookVector * flashStepDistance)
                 end
             end,
         })
