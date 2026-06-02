@@ -2181,19 +2181,25 @@ SettingsTab:CreateButton({
                 end
             end,
         })
-        })
         
-        local fovCircle = Drawing.new("Circle")
-        fovCircle.Visible = false
-        fovCircle.Color = Color3.fromRGB(255, 255, 255)
-        fovCircle.Thickness = 1
-        fovCircle.NumSides = 100
-        fovCircle.Radius = 150
-        fovCircle.Filled = false
+        local fovCircle = nil
+        if Drawing then
+            pcall(function()
+                fovCircle = Drawing.new("Circle")
+                fovCircle.Visible = false
+                fovCircle.Color = Color3.fromRGB(255, 255, 255)
+                fovCircle.Thickness = 1
+                fovCircle.NumSides = 100
+                fovCircle.Radius = 150
+                fovCircle.Filled = false
+            end)
+        end
         
         game:GetService("RunService").RenderStepped:Connect(function()
-            local mouse = game:GetService("Players").LocalPlayer:GetMouse()
-            fovCircle.Position = Vector2.new(mouse.X, mouse.Y + 36) -- Offset for top bar
+            if fovCircle then
+                local mouse = game:GetService("Players").LocalPlayer:GetMouse()
+                pcall(function() fovCircle.Position = Vector2.new(mouse.X, mouse.Y + 36) end)
+            end
         end)
         
         MainTab:CreateSection("Combat")
@@ -2222,7 +2228,7 @@ SettingsTab:CreateButton({
                                 end
                             end
                             if closest and closest.Character and closest.Character:FindFirstChild("Head") then
-                                workspace.CurrentCamera.CFrame = CFrame.new(workspace.CurrentCamera.CFrame.Position, closest.Character.Head.Position)
+                                pcall(function() workspace.CurrentCamera.CFrame = CFrame.new(workspace.CurrentCamera.CFrame.Position, closest.Character.Head.Position) end)
                             end
                         end
                     end)
@@ -2242,7 +2248,7 @@ SettingsTab:CreateButton({
             Flag = "Uni_SilentAimFOV",
             Callback = function(Value)
                 silentAimFOV = Value
-                fovCircle.Radius = Value
+                if fovCircle then pcall(function() fovCircle.Radius = Value end) end
             end,
         })
         
@@ -2253,7 +2259,7 @@ SettingsTab:CreateButton({
             Flag = "Uni_SilentAim",
             Callback = function(Value)
                 silentAimEnabled = Value
-                fovCircle.Visible = Value
+                if fovCircle then pcall(function() fovCircle.Visible = Value end) end
             end,
         })
         
