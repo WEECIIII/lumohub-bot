@@ -276,71 +276,25 @@ local function LoadLumoHub(activeKey, authGui)
             end,
         })
 
-        local autoStealEnabled = false
-        MainTab:CreateToggle({
-            Name = "Auto Steal Loop",
-            CurrentValue = false,
-            Flag = "Brainrot_AutoSteal",
-            Callback = function(Value)
-                autoStealEnabled = Value
-                if Value then
-                    if not baseLocation then
-                        Rayfield:Notify({Title = "Error", Content = "Please set your Base Location first!", Duration = 3})
-                        -- We use a small delay so the toggle logic doesn't instantly flip back and glitch the UI
-                        task.delay(0.1, function()
-                            Rayfield:SetToggle("Brainrot_AutoSteal", false)
-                        end)
-                        return
-                    end
+        MainTab:CreateKeybind({
+            Name = "Quick Drop-off (Teleport Base & Back)",
+            CurrentKeybind = "V",
+            HoldToInteract = false,
+            Flag = "Brainrot_QuickDropoff",
+            Callback = function()
+                if not baseLocation then
+                    Rayfield:Notify({Title = "Error", Content = "Please set your Base Location first!", Duration = 3})
+                    return
+                end
+                local char = Player.Character
+                if char and char:FindFirstChild("HumanoidRootPart") then
+                    local hrp = char.HumanoidRootPart
+                    local savedPos = hrp.CFrame
                     
-                    task.spawn(function()
-                        while autoStealEnabled do
-                            task.wait(0.5)
-                            local char = Player.Character
-                            if not char or not char:FindFirstChild("HumanoidRootPart") then continue end
-                            
-                            -- Find a valid target (ProximityPrompt)
-                            local targetPrompt = nil
-                            local targetPart = nil
-                            for _, prompt in ipairs(workspace:GetDescendants()) do
-                                if prompt:IsA("ProximityPrompt") then
-                                    local parent = prompt.Parent
-                                    if parent and parent:IsA("BasePart") then
-                                        targetPrompt = prompt
-                                        targetPart = parent
-                                        break
-                                    end
-                                end
-                            end
-                            
-                            if targetPrompt and targetPart then
-                                -- 1. Tween to the item
-                                SafeTeleport(targetPart.CFrame + Vector3.new(0, 3, 0), 200)
-                                task.wait(0.2)
-                                
-                                -- 2. Fire the prompt instantly
-                                if autoStealEnabled and targetPrompt.Parent then
-                                    local originalDuration = targetPrompt.HoldDuration
-                                    targetPrompt.HoldDuration = 0
-                                    targetPrompt:InputHoldBegin()
-                                    targetPrompt:InputHoldEnd()
-                                    targetPrompt.HoldDuration = originalDuration
-                                    
-                                    -- Wait for item to attach (approximate)
-                                    task.wait(1.5) 
-                                    
-                                    -- 3. Tween back to base
-                                    if autoStealEnabled then
-                                        SafeTeleport(baseLocation, 200)
-                                        task.wait(1) -- Wait at base to drop off item
-                                    end
-                                end
-                            else
-                                -- No items found, wait a bit before checking again
-                                task.wait(2)
-                            end
-                        end
-                    end)
+                    -- Instantly pivot to avoid dragging through lasers
+                    char:PivotTo(baseLocation)
+                    task.wait(0.4) 
+                    char:PivotTo(savedPos)
                 end
             end,
         })
