@@ -215,7 +215,38 @@ local function LoadLumoHub(activeKey, authGui)
     local success, info = pcall(function() return game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId) end)
     local GameName = (success and info) and info.Name or "Unknown Game"
 
-    if game.GameId == 7436755782 or game.PlaceId == 126884695634066 or string.find(string.lower(GameName), "garden") then
+    if game.GameId == 7709344486 or game.PlaceId == 109983668079237 or string.find(string.lower(GameName), "brainrot") then
+        local Window = Rayfield:CreateWindow({
+            Name = "LumoHub Premium 🧠 | Steal a Brainrot",
+            Icon = 0,
+            LoadingTitle = "LumoHub Premium",
+            LoadingSubtitle = "Injecting Modules...",
+            Theme = "Default",
+            DisableRayfieldPrompts = true,
+            DisableBuildWarnings = true,
+            ConfigurationSaving = {
+                Enabled = false,
+                FolderName = "LumoHubConfig",
+                FileName = "Config"
+            },
+            Discord = {
+                Enabled = true,
+                Invite = "qkCRXBeEpB",
+                RememberJoins = true
+            },
+            KeySystem = false
+        })
+
+        local MainTab = Window:CreateTab("Main 🏠", 4483362458)
+        local MovementTab = Window:CreateTab("Movement 🏃", 4483362458)
+        local SettingsTab = Window:CreateTab("Settings ⚙️", 4483362458)
+        
+        MainTab:CreateSection("Farming & Features")
+
+        CreateProtectionsTab(Window)
+        Rayfield:LoadConfiguration()
+
+    elseif game.GameId == 7436755782 or game.PlaceId == 126884695634066 or string.find(string.lower(GameName), "garden") then
             local Window = Rayfield:CreateWindow({
                 Name = "LumoHub Premium | " .. GameName,
                 Icon = 0,
