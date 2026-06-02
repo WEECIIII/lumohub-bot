@@ -238,7 +238,6 @@ local function LoadLumoHub(activeKey, authGui)
         })
 
         local MainTab = Window:CreateTab("Main 🏠", 4483362458)
-        local DevTab = Window:CreateTab("Developer 🛠️", 4483362458)
         local SettingsTab = Window:CreateTab("Settings ⚙️", 4483362458)
         
         local function getTycoons()
@@ -251,7 +250,92 @@ local function LoadLumoHub(activeKey, authGui)
             return tycoons
         end
 
+        local function getCash()
+            local leaderstats = game.Players.LocalPlayer:FindFirstChild("leaderstats")
+            if leaderstats then
+                for _, stat in ipairs(leaderstats:GetChildren()) do
+                    if string.find(string.lower(stat.Name), "cash") or string.find(string.lower(stat.Name), "money") or string.find(string.lower(stat.Name), "lemon") then
+                        return stat.Value
+                    end
+                end
+            end
+            return 999e9 -- fallback if we can't find money
+        end
+
+        local function canAfford(buttonPart)
+            local price = buttonPart:FindFirstChild("Price") or buttonPart:FindFirstChild("Cost")
+            if price and price:IsA("ValueBase") then
+                return getCash() >= tonumber(price.Value)
+            end
+            
+            -- Try to parse from a SurfaceGui or BillboardGui
+            for _, gui in ipairs(buttonPart:GetDescendants()) do
+                if gui:IsA("TextLabel") and string.find(gui.Text, "%$") then
+                    local parsedPrice = string.match(gui.Text, "%$([%d%.]+)")
+                    if parsedPrice then
+                        return getCash() >= tonumber(parsedPrice)
+                    end
+                end
+            end
+            return true
+        end
+
         MainTab:CreateSection("Auto Farming")
+        
+        local autoCollect = false
+        MainTab:CreateToggle({
+            Name = "Auto Collect Cash",
+            CurrentValue = false,
+            Flag = "Lemons_AutoCollect",
+            Callback = function(Value)
+                autoCollect = Value
+                if autoCollect then
+                    task.spawn(function()
+                        while autoCollect do
+                            local char = game.Players.LocalPlayer.Character
+                            if char and char:FindFirstChild("HumanoidRootPart") then
+                                for _, tycoon in ipairs(getTycoons()) do
+                                    for _, v in ipairs(tycoon:GetDescendants()) do
+                                        if v:IsA("TouchInterest") and v.Parent then
+                                            local pName = string.lower(v.Parent.Name)
+                                            if string.find(pName, "giver") or string.find(pName, "collect") or string.find(pName, "cash") or string.find(pName, "drop") then
+                                                firetouchinterest(char.HumanoidRootPart, v.Parent, 0)
+                                                firetouchinterest(char.HumanoidRootPart, v.Parent, 1)
+                                            end
+                                        end
+                                    end
+                                end
+                            end
+                            task.wait(1)
+                        end
+                    end)
+                end
+            end,
+        })
+        
+        local autoClicker = false
+        MainTab:CreateToggle({
+            Name = "Auto Clicker (Lemon Stand)",
+            CurrentValue = false,
+            Flag = "Lemons_AutoClicker",
+            Callback = function(Value)
+                autoClicker = Value
+                if autoClicker then
+                    task.spawn(function()
+                        while autoClicker do
+                            for _, tycoon in ipairs(getTycoons()) do
+                                for _, v in ipairs(tycoon:GetDescendants()) do
+                                    if v:IsA("ClickDetector") then
+                                        fireclickdetector(v)
+                                    end
+                                end
+                            end
+                            task.wait(0.1)
+                        end
+                    end)
+                end
+            end,
+        })
         
         local autoBuy = false
         MainTab:CreateToggle({
@@ -269,13 +353,15 @@ local function LoadLumoHub(activeKey, authGui)
                                     for _, obj in ipairs(purchases:GetDescendants()) do
                                         if not autoBuy then break end
                                         if obj:IsA("RemoteFunction") and obj.Name == "Purchase" then
-                                            task.spawn(function() pcall(function() obj:InvokeServer() end) end)
-                                            task.wait(0.01)
+                                            if canAfford(obj.Parent) then
+                                                task.spawn(function() pcall(function() obj:InvokeServer() end) end)
+                                                task.wait(0.1)
+                                            end
                                         end
                                     end
                                 end
                             end
-                            task.wait(1)
+                            task.wait(2)
                         end
                     end)
                 end
@@ -298,8 +384,10 @@ local function LoadLumoHub(activeKey, authGui)
                                     for _, obj in ipairs(purchases:GetDescendants()) do
                                         if not autoUpgrade then break end
                                         if obj:IsA("RemoteFunction") and obj.Name == "Upgrade" then
-                                            task.spawn(function() pcall(function() obj:InvokeServer() end) end)
-                                            task.wait(0.01)
+                                            if canAfford(obj.Parent) then
+                                                task.spawn(function() pcall(function() obj:InvokeServer() end) end)
+                                                task.wait(0.1)
+                                            end
                                         end
                                     end
                                 end
@@ -395,62 +483,7 @@ local function LoadLumoHub(activeKey, authGui)
             end,
         })
         
-        DevTab:CreateSection("Game Recon")
-        
-        DevTab:CreateButton({
-            Name = "Copy All Local & Module Script Paths",
-            Callback = function()
-                local scriptList = "--- LUMOHUB SCRIPT DUMP ---\n\n"
-                local count = 0
-                for _, obj in ipairs(game:GetDescendants()) do
-                    if obj:IsA("LocalScript") or obj:IsA("ModuleScript") then
-                        scriptList = scriptList .. "Name: " .. obj.Name .. " | Class: " .. obj.ClassName .. " | Path: " .. obj:GetFullName() .. "\n"
-                        count = count + 1
-                    end
-                end
-                
-                if setclipboard then
-                    setclipboard(scriptList)
-                    Rayfield:Notify({Title = "Success", Content = "Copied " .. count .. " scripts to clipboard!", Duration = 3})
-                else
-                    Rayfield:Notify({Title = "Error", Content = "Your executor does not support setclipboard.", Duration = 3})
-                    print(scriptList)
-                end
-            end,
-        })
-        
-        DevTab:CreateButton({
-            Name = "Copy All Remote Events & Functions",
-            Callback = function()
-                local remoteList = "--- LUMOHUB REMOTE DUMP ---\n\n"
-                local count = 0
-                for _, obj in ipairs(game:GetDescendants()) do
-                    if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
-                        remoteList = remoteList .. "Name: " .. obj.Name .. " | Class: " .. obj.ClassName .. " | Path: " .. obj:GetFullName() .. "\n"
-                        count = count + 1
-                    end
-                end
-                
-                if setclipboard then
-                    setclipboard(remoteList)
-                    Rayfield:Notify({Title = "Success", Content = "Copied " .. count .. " remotes to clipboard!", Duration = 3})
-                else
-                    Rayfield:Notify({Title = "Error", Content = "Your executor does not support setclipboard.", Duration = 3})
-                    print(remoteList)
-                end
-            end,
-        })
 
-        DevTab:CreateSection("Exploration Tools")
-
-        DevTab:CreateButton({
-            Name = "Load Dex Explorer (Best Tool)",
-            Callback = function()
-                Rayfield:Notify({Title = "Loading", Content = "Executing Dex Explorer...", Duration = 3})
-                loadstring(game:HttpGet("https://raw.githubusercontent.com/infyiff/backup/main/dex.lua"))()
-            end,
-        })
-        
         SettingsTab:CreateSection("Menu Settings")
         SettingsTab:CreateButton({
             Name = "Unload Menu",
