@@ -315,17 +315,27 @@ local function LoadLumoHub(activeKey, authGui)
         })
 
         MovementTab:CreateKeybind({
-            Name = "Flash Step (Safe Tween)",
+            Name = "Flash Step (Instant Blink)",
             CurrentKeybind = "C",
             HoldToInteract = false,
             Flag = "Brainrot_FlashStepKey",
             Callback = function()
                 local char = Player.Character
-                if char and char:FindFirstChild("HumanoidRootPart") then
+                if char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChild("Humanoid") then
                     local hrp = char.HumanoidRootPart
+                    local hum = char.Humanoid
                     local lookVector = hrp.CFrame.LookVector
                     local target = hrp.CFrame + (lookVector * flashStepDistance)
-                    SafeTeleport(target, 400) 
+                    
+                    -- Temporarily freeze momentum to bypass BAC-5354 velocity checks
+                    local oldSpeed = hum.WalkSpeed
+                    hum.WalkSpeed = 0
+                    if hrp:FindFirstChild("Velocity") then hrp.Velocity = Vector3.zero end
+                    
+                    char:PivotTo(target)
+                    
+                    task.wait(0.05)
+                    hum.WalkSpeed = oldSpeed
                 end
             end,
         })
