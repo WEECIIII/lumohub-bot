@@ -420,9 +420,16 @@ local function LoadLumoHub(activeKey, authGui)
                 end
             end,
         })
+        SettingsTab:CreateSection("Menu Settings")
+
+        SettingsTab:CreateButton({
+            Name = "Unload Menu (Might be buggy)",
+            Callback = function()
+                pcall(function() Rayfield:Destroy() end)
+            end,
+        })
 
         CreateProtectionsTab(Window)
-        
         VisualsTab:CreateSection("Lighting")
         VisualsTab:CreateToggle({
             Name = "FullBright",
