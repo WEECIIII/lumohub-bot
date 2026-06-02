@@ -215,7 +215,7 @@ local function LoadLumoHub(activeKey, authGui)
     local success, info = pcall(function() return game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId) end)
     local GameName = (success and info) and info.Name or "Unknown Game"
 
-    if string.find(string.lower(GameName), "lemon") then
+    if game.PlaceId == 79268393072444 or string.find(string.lower(GameName), "lemon") then
         local Window = Rayfield:CreateWindow({
             Name = "LumoHub Premium 🍋 | " .. GameName,
             Icon = 0,
