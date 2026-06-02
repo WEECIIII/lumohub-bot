@@ -1517,6 +1517,49 @@ GunTab:CreateToggle({
     end,
 })
 
+local infAmmoLoop
+GunTab:CreateToggle({
+    Name = "Infinite Ammo (Equip Gun)",
+    CurrentValue = false,
+    Flag = "InfAmmo",
+    Callback = function(Value)
+        if Value then
+            infAmmoLoop = game:GetService("RunService").Heartbeat:Connect(function()
+                local function modGun(gun)
+                    if gun:IsA("Tool") then
+                        for _, v in ipairs(gun:GetDescendants()) do
+                            if v:IsA("IntValue") or v:IsA("NumberValue") then
+                                if string.find(string.lower(v.Name), "ammo") or string.find(string.lower(v.Name), "clip") then
+                                    if v.Value < 900 then v.Value = 999 end
+                                end
+                            elseif v:IsA("ModuleScript") and (string.find(string.lower(v.Name), "setting")) then
+                                pcall(function()
+                                    local conf = require(v)
+                                    if conf.Ammo then conf.Ammo = 999 end
+                                    if conf.MaxAmmo then conf.MaxAmmo = 999 end
+                                    if conf.Clip then conf.Clip = 999 end
+                                    if conf.ClipSize then conf.ClipSize = 999 end
+                                    if conf.StoredAmmo then conf.StoredAmmo = 9999 end
+                                end)
+                            end
+                        end
+                    end
+                end
+                
+                if Player.Character then
+                    for _, v in ipairs(Player.Character:GetChildren()) do modGun(v) end
+                end
+                if Player:FindFirstChild("Backpack") then
+                    for _, v in ipairs(Player.Backpack:GetChildren()) do modGun(v) end
+                end
+            end)
+            Rayfield:Notify({Title = "Infinite Ammo", Content = "Ammo automatically refilled!", Duration = 3})
+        else
+            if infAmmoLoop then infAmmoLoop:Disconnect() end
+        end
+    end,
+})
+
 -- MOVEMENT (Fly and Noclip)
 -- ──────────────────────────────────────────────────────────────
 local Fly = {
