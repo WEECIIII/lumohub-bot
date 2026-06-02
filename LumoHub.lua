@@ -2151,6 +2151,41 @@ SettingsTab:CreateButton({
             end,
         })
         
+        PlayerTab:CreateToggle({
+            Name = "Force First Person",
+            CurrentValue = false,
+            Flag = "Uni_FFP",
+            Callback = function(Value)
+                if Value then
+                    Player.CameraMode = Enum.CameraMode.LockFirstPerson
+                else
+                    Player.CameraMode = Enum.CameraMode.Classic
+                end
+            end,
+        })
+        
+        PlayerTab:CreateLabel("⚠️ First Person forcing can be detected in some games.")
+        
+        PlayerTab:CreateToggle({
+            Name = "Pseudo God Mode (Delete Hitboxes)",
+            CurrentValue = false,
+            Flag = "Uni_GodMode",
+            Callback = function(Value)
+                if Value then
+                    if Player.Character then
+                        pcall(function()
+                            -- Deleting right arm/leg usually breaks most weapon hit detection systems
+                            if Player.Character:FindFirstChild("Right Arm") then Player.Character["Right Arm"]:Destroy() end
+                            if Player.Character:FindFirstChild("RightHand") then Player.Character["RightHand"]:Destroy() end
+                            if Player.Character:FindFirstChild("RightUpperArm") then Player.Character["RightUpperArm"]:Destroy() end
+                        end)
+                    end
+                end
+            end,
+        })
+        
+        PlayerTab:CreateLabel("⚠️ Pseudo God Mode breaks your character model permanently until reset.")
+        
         PlayerTab:CreateSection("Teleportation")
         
         local selectedPlayerToTP = nil
