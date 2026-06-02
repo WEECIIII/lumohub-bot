@@ -243,6 +243,76 @@ local function LoadLumoHub(activeKey, authGui)
         
         MainTab:CreateSection("Farming & Features")
 
+        local instaStealEnabled = false
+        MainTab:CreateToggle({
+            Name = "Insta Steal (Undetected)",
+            CurrentValue = false,
+            Flag = "Brainrot_InstaSteal",
+            Callback = function(Value)
+                instaStealEnabled = Value
+                if Value then
+                    task.spawn(function()
+                        while instaStealEnabled do
+                            -- Wait a randomized amount of time to bypass simple anti-cheats tracking input frequency
+                            task.wait(math.random(1, 3) / 10) 
+                            
+                            local char = Player.Character
+                            if char and char:FindFirstChild("HumanoidRootPart") then
+                                local rootPos = char.HumanoidRootPart.Position
+                                
+                                -- Search for ProximityPrompts close to the player to avoid global teleport checks
+                                for _, prompt in ipairs(workspace:GetDescendants()) do
+                                    if prompt:IsA("ProximityPrompt") then
+                                        local parent = prompt.Parent
+                                        if parent and parent:IsA("BasePart") then
+                                            -- Only interact if within a safe distance (e.g., 15 studs) to remain undetected
+                                            if (parent.Position - rootPos).Magnitude <= 15 then
+                                                -- Bypass hold duration to make it instant
+                                                local originalDuration = prompt.HoldDuration
+                                                prompt.HoldDuration = 0
+                                                prompt:InputHoldBegin()
+                                                prompt:InputHoldEnd()
+                                                prompt.HoldDuration = originalDuration
+                                            end
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end)
+                end
+            end,
+        })
+
+        local flashStepEnabled = false
+        local flashStepConn
+        MovementTab:CreateSection("Movement Bypasses")
+        MovementTab:CreateToggle({
+            Name = "Flash Step (Walk through walls)",
+            CurrentValue = false,
+            Flag = "Brainrot_FlashStep",
+            Callback = function(Value)
+                flashStepEnabled = Value
+                if Value then
+                    if flashStepConn then flashStepConn:Disconnect() end
+                    flashStepConn = RunService.Stepped:Connect(function()
+                        if not flashStepEnabled or not Player.Character then return end
+                        -- Loop through character parts and disable collision
+                        for _, part in ipairs(Player.Character:GetDescendants()) do
+                            if part:IsA("BasePart") and part.CanCollide then
+                                part.CanCollide = false
+                            end
+                        end
+                    end)
+                else
+                    if flashStepConn then
+                        flashStepConn:Disconnect()
+                        flashStepConn = nil
+                    end
+                end
+            end,
+        })
+
         CreateProtectionsTab(Window)
         Rayfield:LoadConfiguration()
 
