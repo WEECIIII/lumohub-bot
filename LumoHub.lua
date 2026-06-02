@@ -2341,50 +2341,52 @@ SettingsTab:CreateButton({
         })
         
         -- Hook for Silent Aim
-        local osGm = getrawmetatable(game)
+        local osGm = getrawmetatable and getrawmetatable(game)
         local osSetreadonly = setreadonly or make_writeable
-        if osGm and osSetreadonly then
-            osSetreadonly(osGm, false)
-            local namecall = osGm.__namecall
-            osGm.__namecall = newcclosure(function(self, ...)
-                local args = {...}
-                local method = getnamecallmethod()
-                
-                if osSilentAimEnabled and not checkcaller() and (method == "FindPartOnRayWithIgnoreList" or method == "FindPartOnRayWithWhitelist" or method == "FindPartOnRay" or method == "Raycast") then
-                    local closestPart = nil
-                    local shortestDistance = osSilentAimFOV
-                    local mouse = Player:GetMouse()
-                    local mousePos = Vector2.new(mouse.X, mouse.Y)
+        if osGm and osSetreadonly and newcclosure and getnamecallmethod then
+            pcall(function()
+                osSetreadonly(osGm, false)
+                local namecall = osGm.__namecall
+                osGm.__namecall = newcclosure(function(self, ...)
+                    local args = {...}
+                    local method = getnamecallmethod()
                     
-                    for _, v in pairs(game.Players:GetPlayers()) do
-                        if v ~= Player and v.Character and v.Character:FindFirstChild("Head") and v.Character:FindFirstChild("Humanoid") and v.Character.Humanoid.Health > 0 then
-                            local pos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(v.Character.Head.Position)
-                            if onScreen then
-                                local dist = (Vector2.new(pos.X, pos.Y) - mousePos).Magnitude
-                                if dist < shortestDistance then
-                                    closestPart = v.Character.Head
-                                    shortestDistance = dist
+                    if osSilentAimEnabled and not checkcaller() and (method == "FindPartOnRayWithIgnoreList" or method == "FindPartOnRayWithWhitelist" or method == "FindPartOnRay" or method == "Raycast") then
+                        local closestPart = nil
+                        local shortestDistance = osSilentAimFOV
+                        local mouse = Player:GetMouse()
+                        local mousePos = Vector2.new(mouse.X, mouse.Y)
+                        
+                        for _, v in pairs(game.Players:GetPlayers()) do
+                            if v ~= Player and v.Character and v.Character:FindFirstChild("Head") and v.Character:FindFirstChild("Humanoid") and v.Character.Humanoid.Health > 0 then
+                                local pos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(v.Character.Head.Position)
+                                if onScreen then
+                                    local dist = (Vector2.new(pos.X, pos.Y) - mousePos).Magnitude
+                                    if dist < shortestDistance then
+                                        closestPart = v.Character.Head
+                                        shortestDistance = dist
+                                    end
                                 end
                             end
                         end
-                    end
-                    
-                    if closestPart then
-                        local origin = args[1].Origin
-                        if method == "Raycast" then
-                            origin = args[1]
-                            local direction = (closestPart.Position - origin).Unit * 1000
-                            args[2] = direction
-                        else
-                            local direction = (closestPart.Position - origin).Unit * 1000
-                            args[1] = Ray.new(origin, direction)
+                        
+                        if closestPart then
+                            local origin = args[1].Origin
+                            if method == "Raycast" then
+                                origin = args[1]
+                                local direction = (closestPart.Position - origin).Unit * 1000
+                                args[2] = direction
+                            else
+                                local direction = (closestPart.Position - origin).Unit * 1000
+                                args[1] = Ray.new(origin, direction)
+                            end
+                            return namecall(self, unpack(args))
                         end
-                        return namecall(self, unpack(args))
                     end
-                end
-                return namecall(self, ...)
+                    return namecall(self, ...)
+                end)
+                osSetreadonly(osGm, true)
             end)
-            osSetreadonly(osGm, true)
         end
         
         -- One Scope Player
@@ -2600,50 +2602,52 @@ SettingsTab:CreateButton({
         })
         
         -- Hook for Silent Aim
-        local gm = getrawmetatable(game)
+        local gm = getrawmetatable and getrawmetatable(game)
         local setreadonly = setreadonly or make_writeable
-        if gm and setreadonly then
-            setreadonly(gm, false)
-            local namecall = gm.__namecall
-            gm.__namecall = newcclosure(function(self, ...)
-                local args = {...}
-                local method = getnamecallmethod()
-                
-                if silentAimEnabled and not checkcaller() and (method == "FindPartOnRayWithIgnoreList" or method == "FindPartOnRayWithWhitelist" or method == "FindPartOnRay" or method == "Raycast") then
-                    local closestPart = nil
-                    local shortestDistance = silentAimFOV
-                    local mouse = Player:GetMouse()
-                    local mousePos = Vector2.new(mouse.X, mouse.Y)
+        if gm and setreadonly and newcclosure and getnamecallmethod then
+            pcall(function()
+                setreadonly(gm, false)
+                local namecall = gm.__namecall
+                gm.__namecall = newcclosure(function(self, ...)
+                    local args = {...}
+                    local method = getnamecallmethod()
                     
-                    for _, v in pairs(game.Players:GetPlayers()) do
-                        if v ~= Player and v.Character and v.Character:FindFirstChild("Head") and v.Character:FindFirstChild("Humanoid") and v.Character.Humanoid.Health > 0 then
-                            local pos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(v.Character.Head.Position)
-                            if onScreen then
-                                local dist = (Vector2.new(pos.X, pos.Y) - mousePos).Magnitude
-                                if dist < shortestDistance then
-                                    closestPart = v.Character.Head
-                                    shortestDistance = dist
+                    if silentAimEnabled and not checkcaller() and (method == "FindPartOnRayWithIgnoreList" or method == "FindPartOnRayWithWhitelist" or method == "FindPartOnRay" or method == "Raycast") then
+                        local closestPart = nil
+                        local shortestDistance = silentAimFOV
+                        local mouse = Player:GetMouse()
+                        local mousePos = Vector2.new(mouse.X, mouse.Y)
+                        
+                        for _, v in pairs(game.Players:GetPlayers()) do
+                            if v ~= Player and v.Character and v.Character:FindFirstChild("Head") and v.Character:FindFirstChild("Humanoid") and v.Character.Humanoid.Health > 0 then
+                                local pos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(v.Character.Head.Position)
+                                if onScreen then
+                                    local dist = (Vector2.new(pos.X, pos.Y) - mousePos).Magnitude
+                                    if dist < shortestDistance then
+                                        closestPart = v.Character.Head
+                                        shortestDistance = dist
+                                    end
                                 end
                             end
                         end
-                    end
-                    
-                    if closestPart then
-                        local origin = args[1].Origin
-                        if method == "Raycast" then
-                            origin = args[1]
-                            local direction = (closestPart.Position - origin).Unit * 1000
-                            args[2] = direction
-                        else
-                            local direction = (closestPart.Position - origin).Unit * 1000
-                            args[1] = Ray.new(origin, direction)
+                        
+                        if closestPart then
+                            local origin = args[1].Origin
+                            if method == "Raycast" then
+                                origin = args[1]
+                                local direction = (closestPart.Position - origin).Unit * 1000
+                                args[2] = direction
+                            else
+                                local direction = (closestPart.Position - origin).Unit * 1000
+                                args[1] = Ray.new(origin, direction)
+                            end
+                            return namecall(self, unpack(args))
                         end
-                        return namecall(self, unpack(args))
                     end
-                end
-                return namecall(self, ...)
+                    return namecall(self, ...)
+                end)
+                setreadonly(gm, true)
             end)
-            setreadonly(gm, true)
         end
         
         local killAuraLoop
