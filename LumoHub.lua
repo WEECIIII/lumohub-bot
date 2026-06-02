@@ -1922,44 +1922,166 @@ SettingsTab:CreateButton({
         Rayfield:LoadConfiguration()
 
     else
-        -- Unsupported Game Fallback
+        -- Universal Hub
         local Window = Rayfield:CreateWindow({
-            Name = "LumoHub Premium ❌ | Unsupported",
+            Name = "LumoHub Premium 🌐 | Universal",
             LoadingTitle = "LumoHub Premium",
-            LoadingSubtitle = "Game Not Supported",
+            LoadingSubtitle = "Injecting Universal Scripts...",
             ConfigurationSaving = { Enabled = false },
-            Discord = {
-                Enabled = true,
-                Invite = "qkCRXBeEpB",
-                RememberJoins = true
-            },
+            Discord = { Enabled = true, Invite = "qkCRXBeEpB", RememberJoins = true },
             KeySystem = false
         })
         
         Rayfield:Notify({
-            Title = "Game Not Supported",
-            Content = "LumoHub doesn't have specific cheats for this game yet.",
+            Title = "Universal Mode",
+            Content = "Game not officially supported. Loading Universal features!",
             Duration = 5,
             Image = 4483362458
         })
+
+        local MainTab = Window:CreateTab("Universal 🌐", 4483362458)
+        local PlayerTab = Window:CreateTab("LocalPlayer 👤", 4483362458)
         
-        local MainTab = Window:CreateTab("Unsupported ❌", 4483362458)
-        MainTab:CreateSection("Unsupported")
-        MainTab:CreateParagraph({
-            Title = "Game Not Supported",
-            Content = "We don't have a dedicated cheat for " .. GameName .. " yet.\n\nYou can see all of our supported games from the Discord!"
-        })
-        
-        MainTab:CreateButton({
-            Name = "Copy Discord Link",
-            Callback = function()
-                if setclipboard then
-                    setclipboard("https://discord.gg/qkCRXBeEpB")
-                    Rayfield:Notify({Title = "Copied!", Content = "Discord link copied to clipboard.", Duration = 3, Image = 4483362458})
+        -- WalkSpeed & JumpPower
+        PlayerTab:CreateSection("Modifiers")
+        PlayerTab:CreateSlider({
+            Name = "Walk Speed",
+            Range = {16, 200},
+            Increment = 1,
+            Suffix = " WS",
+            CurrentValue = 16,
+            Flag = "Uni_WS",
+            Callback = function(Value)
+                if Player.Character and Player.Character:FindFirstChildOfClass("Humanoid") then
+                    Player.Character:FindFirstChildOfClass("Humanoid").WalkSpeed = Value
                 end
             end,
         })
-        
+        PlayerTab:CreateSlider({
+            Name = "Jump Power",
+            Range = {50, 200},
+            Increment = 1,
+            Suffix = " JP",
+            CurrentValue = 50,
+            Flag = "Uni_JP",
+            Callback = function(Value)
+                if Player.Character and Player.Character:FindFirstChildOfClass("Humanoid") then
+                    Player.Character:FindFirstChildOfClass("Humanoid").JumpPower = Value
+                end
+            end,
+        })
+
+        -- Infinite Jump
+        local InfJump = false
+        game:GetService("UserInputService").JumpRequest:Connect(function()
+            if InfJump and Player.Character and Player.Character:FindFirstChildOfClass("Humanoid") then
+                Player.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping")
+            end
+        end)
+        PlayerTab:CreateToggle({
+            Name = "Infinite Jump",
+            CurrentValue = false,
+            Flag = "Uni_InfJump",
+            Callback = function(Value)
+                InfJump = Value
+            end,
+        })
+
+        -- Simple ESP
+        MainTab:CreateSection("Visuals")
+        MainTab:CreateToggle({
+            Name = "Simple Player ESP (Highlights)",
+            CurrentValue = false,
+            Flag = "Uni_ESP",
+            Callback = function(Value)
+                if Value then
+                    if _G.UniESP then _G.UniESP:Disconnect() end
+                    _G.UniESP = game:GetService("RunService").RenderStepped:Connect(function()
+                        for _, v in pairs(game.Players:GetPlayers()) do
+                            if v ~= Player and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
+                                if not v.Character:FindFirstChild("LumoUniESP") then
+                                    local h = Instance.new("Highlight")
+                                    h.Name = "LumoUniESP"
+                                    h.FillColor = Color3.fromRGB(255, 0, 0)
+                                    h.FillTransparency = 0.5
+                                    h.OutlineColor = Color3.fromRGB(255, 255, 255)
+                                    h.Parent = v.Character
+                                end
+                            end
+                        end
+                    end)
+                else
+                    if _G.UniESP then _G.UniESP:Disconnect() end
+                    for _, v in pairs(game.Players:GetPlayers()) do
+                        if v.Character and v.Character:FindFirstChild("LumoUniESP") then
+                            v.Character.LumoUniESP:Destroy()
+                        end
+                    end
+                end
+            end,
+        })
+
+        -- Fullbright
+        MainTab:CreateToggle({
+            Name = "Fullbright (No Shadows)",
+            CurrentValue = false,
+            Flag = "Uni_Fullbright",
+            Callback = function(Value)
+                if Value then
+                    if _G.UniFB then _G.UniFB:Disconnect() end
+                    _G.UniFB = game:GetService("RunService").RenderStepped:Connect(function()
+                        game.Lighting.Ambient = Color3.new(1, 1, 1)
+                        game.Lighting.ColorShift_Bottom = Color3.new(1, 1, 1)
+                        game.Lighting.ColorShift_Top = Color3.new(1, 1, 1)
+                        game.Lighting.GlobalShadows = false
+                    end)
+                else
+                    if _G.UniFB then _G.UniFB:Disconnect() end
+                    game.Lighting.Ambient = Color3.fromRGB(127, 127, 127)
+                    game.Lighting.GlobalShadows = true
+                end
+            end,
+        })
+
+        -- Simple Aimbot (Camera Lock)
+        local camLock = false
+        MainTab:CreateSection("Combat")
+        MainTab:CreateToggle({
+            Name = "Right-Click Camera Lock (Aimbot)",
+            CurrentValue = false,
+            Flag = "Uni_CamLock",
+            Callback = function(Value)
+                camLock = Value
+                if Value then
+                    if _G.UniCamLock then _G.UniCamLock:Disconnect() end
+                    _G.UniCamLock = game:GetService("RunService").RenderStepped:Connect(function()
+                        if game:GetService("UserInputService"):IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
+                            local closest = nil
+                            local shortest = math.huge
+                            local mouse = Player:GetMouse()
+                            for _, v in pairs(game.Players:GetPlayers()) do
+                                if v ~= Player and v.Character and v.Character:FindFirstChild("HumanoidRootPart") and v.Character:FindFirstChild("Humanoid") and v.Character.Humanoid.Health > 0 then
+                                    local pos, vis = workspace.CurrentCamera:WorldToViewportPoint(v.Character.HumanoidRootPart.Position)
+                                    if vis then
+                                        local dist = (Vector2.new(pos.X, pos.Y) - Vector2.new(mouse.X, mouse.Y)).Magnitude
+                                        if dist < shortest then
+                                            shortest = dist
+                                            closest = v
+                                        end
+                                    end
+                                end
+                            end
+                            if closest and closest.Character and closest.Character:FindFirstChild("Head") then
+                                workspace.CurrentCamera.CFrame = CFrame.new(workspace.CurrentCamera.CFrame.Position, closest.Character.Head.Position)
+                            end
+                        end
+                    end)
+                else
+                    if _G.UniCamLock then _G.UniCamLock:Disconnect() end
+                end
+            end,
+        })
+
         Rayfield:LoadConfiguration()
     end
 end
