@@ -2173,65 +2173,79 @@ SettingsTab:CreateButton({
         game:GetService("RunService").RenderStepped:Connect(function()
             local Camera = workspace.CurrentCamera
             for _, v in pairs(game.Players:GetPlayers()) do
-                if v ~= Player and v.Character and v.Character:FindFirstChild("HumanoidRootPart") and v.Character:FindFirstChild("Humanoid") and v.Character.Humanoid.Health > 0 then
-                    local hrp = v.Character.HumanoidRootPart
-                    local head = v.Character:FindFirstChild("Head")
-                    local pos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
-                    
-                    if not osEspDrawings[v] then
-                        osEspDrawings[v] = {}
-                        if Drawing then
-                            pcall(function()
-                                osEspDrawings[v].Box = Drawing.new("Square")
-                                osEspDrawings[v].Box.Thickness = 1
-                                osEspDrawings[v].Box.Filled = false
-                                osEspDrawings[v].Box.Transparency = 1
-                                
-                                osEspDrawings[v].Tracer = Drawing.new("Line")
-                                osEspDrawings[v].Tracer.Thickness = 1
-                                osEspDrawings[v].Tracer.Transparency = 1
-                                
-                                osEspDrawings[v].Name = Drawing.new("Text")
-                                osEspDrawings[v].Name.Size = 16
-                                osEspDrawings[v].Name.Center = true
-                                osEspDrawings[v].Name.Outline = true
-                            end)
+                pcall(function()
+                    if v ~= Player and v.Character and v.Character:FindFirstChild("HumanoidRootPart") and v.Character:FindFirstChild("Humanoid") and v.Character.Humanoid.Health > 0 then
+                        local hrp = v.Character.HumanoidRootPart
+                        local head = v.Character:FindFirstChild("Head")
+                        if not head then return end
+                        
+                        local pos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
+                        
+                        if not osEspDrawings[v] then
+                            osEspDrawings[v] = {}
+                            if Drawing then
+                                pcall(function()
+                                    osEspDrawings[v].Box = Drawing.new("Square")
+                                    osEspDrawings[v].Box.Thickness = 1
+                                    osEspDrawings[v].Box.Filled = false
+                                    osEspDrawings[v].Box.Transparency = 1
+                                    
+                                    osEspDrawings[v].Tracer = Drawing.new("Line")
+                                    osEspDrawings[v].Tracer.Thickness = 1
+                                    osEspDrawings[v].Tracer.Transparency = 1
+                                    
+                                    osEspDrawings[v].Name = Drawing.new("Text")
+                                    osEspDrawings[v].Name.Size = 16
+                                    osEspDrawings[v].Name.Center = true
+                                    osEspDrawings[v].Name.Outline = true
+                                end)
+                            end
                         end
-                    end
-                    
-                    local drawings = osEspDrawings[v]
-                    if drawings.Box then
-                        if onScreen and head then
-                            local headPos = Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 0.5, 0))
-                            local legPos = Camera:WorldToViewportPoint(hrp.Position - Vector3.new(0, 3, 0))
-                            local height = math.abs(headPos.Y - legPos.Y)
-                            local width = height / 2
-                            
-                            drawings.Box.Size = Vector2.new(width, height)
-                            drawings.Box.Position = Vector2.new(pos.X - width / 2, headPos.Y)
-                            drawings.Box.Color = osEspSettings.Color
-                            drawings.Box.Visible = osEspSettings.Boxes
-                            
-                            drawings.Tracer.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
-                            drawings.Tracer.To = Vector2.new(pos.X, pos.Y)
-                            drawings.Tracer.Color = osEspSettings.Color
-                            drawings.Tracer.Visible = osEspSettings.Tracers
-                            
-                            drawings.Name.Text = v.Name
-                            drawings.Name.Position = Vector2.new(pos.X, headPos.Y - 20)
-                            drawings.Name.Color = osEspSettings.Color
-                            drawings.Name.Visible = osEspSettings.Names
-                        else
-                            drawings.Box.Visible = false
-                            drawings.Tracer.Visible = false
-                            drawings.Name.Visible = false
+                        
+                        local drawings = osEspDrawings[v]
+                        if drawings and drawings.Box then
+                            if onScreen then
+                                local headPos = Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 0.5, 0))
+                                local legPos = Camera:WorldToViewportPoint(hrp.Position - Vector3.new(0, 3, 0))
+                                local height = math.abs(headPos.Y - legPos.Y)
+                                local width = height / 2
+                                
+                                drawings.Box.Size = Vector2.new(width, height)
+                                drawings.Box.Position = Vector2.new(pos.X - width / 2, headPos.Y)
+                                drawings.Box.Color = osEspSettings.Color
+                                drawings.Box.Visible = osEspSettings.Boxes
+                                
+                                drawings.Tracer.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
+                                drawings.Tracer.To = Vector2.new(pos.X, pos.Y)
+                                drawings.Tracer.Color = osEspSettings.Color
+                                drawings.Tracer.Visible = osEspSettings.Tracers
+                                
+                                drawings.Name.Text = v.Name
+                                drawings.Name.Position = Vector2.new(pos.X, headPos.Y - 20)
+                                drawings.Name.Color = osEspSettings.Color
+                                drawings.Name.Visible = osEspSettings.Names
+                            else
+                                drawings.Box.Visible = false
+                                drawings.Tracer.Visible = false
+                                drawings.Name.Visible = false
+                            end
                         end
+                    elseif osEspDrawings[v] then
+                        if osEspDrawings[v].Box then osEspDrawings[v].Box:Remove() end
+                        if osEspDrawings[v].Tracer then osEspDrawings[v].Tracer:Remove() end
+                        if osEspDrawings[v].Name then osEspDrawings[v].Name:Remove() end
+                        osEspDrawings[v] = nil
                     end
-                elseif osEspDrawings[v] then
-                    if osEspDrawings[v].Box then osEspDrawings[v].Box:Remove() end
-                    if osEspDrawings[v].Tracer then osEspDrawings[v].Tracer:Remove() end
-                    if osEspDrawings[v].Name then osEspDrawings[v].Name:Remove() end
-                    osEspDrawings[v] = nil
+                end)
+            end
+            
+            -- FIX FOR FLOATING ESP BUG (CLEANUP DISCONNECTED PLAYERS)
+            for plr, drawings in pairs(osEspDrawings) do
+                if not plr or not plr.Parent or not game.Players:FindFirstChild(plr.Name) then
+                    if drawings.Box then drawings.Box:Remove() end
+                    if drawings.Tracer then drawings.Tracer:Remove() end
+                    if drawings.Name then drawings.Name:Remove() end
+                    osEspDrawings[plr] = nil
                 end
             end
         end)
