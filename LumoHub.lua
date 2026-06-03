@@ -2170,12 +2170,26 @@ SettingsTab:CreateButton({
             osEspDrawings = {}
         end
         
+        local function GetOSCharacter(v)
+            if v == Player then return nil end
+            local char = v.Character or workspace:FindFirstChild(v.Name)
+            if not char then
+                local folder = workspace:FindFirstChild("Characters") or workspace:FindFirstChild("Players")
+                if folder then char = folder:FindFirstChild(v.Name) end
+            end
+            if char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChild("Head") and char:FindFirstChild("Humanoid") and char.Humanoid.Health > 0 then
+                return char
+            end
+            return nil
+        end
+        
         game:GetService("RunService").RenderStepped:Connect(function()
             local Camera = workspace.CurrentCamera
             for _, v in pairs(game.Players:GetPlayers()) do
-                if v ~= Player and v.Character and v.Character:FindFirstChild("HumanoidRootPart") and v.Character:FindFirstChild("Humanoid") and v.Character.Humanoid.Health > 0 then
-                    local hrp = v.Character.HumanoidRootPart
-                    local head = v.Character:FindFirstChild("Head")
+                local validChar = GetOSCharacter(v)
+                if validChar then
+                    local hrp = validChar.HumanoidRootPart
+                    local head = validChar:FindFirstChild("Head")
                     local pos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
                     
                     if not osEspDrawings[v] then
@@ -2306,18 +2320,19 @@ SettingsTab:CreateButton({
                             local closest, shortest = nil, math.huge
                             local mouse = Player:GetMouse()
                             for _, v in pairs(game.Players:GetPlayers()) do
-                                if v ~= Player and v.Character and v.Character:FindFirstChild("HumanoidRootPart") and v.Character:FindFirstChild("Humanoid") and v.Character.Humanoid.Health > 0 then
-                                    local pos, vis = workspace.CurrentCamera:WorldToViewportPoint(v.Character.HumanoidRootPart.Position)
+                                local validChar = GetOSCharacter(v)
+                                if validChar then
+                                    local pos, vis = workspace.CurrentCamera:WorldToViewportPoint(validChar.HumanoidRootPart.Position)
                                     if vis then
                                         local dist = (Vector2.new(pos.X, pos.Y) - Vector2.new(mouse.X, mouse.Y)).Magnitude
                                         if dist < shortest then
-                                            shortest, closest = dist, v
+                                            shortest, closest = dist, validChar
                                         end
                                     end
                                 end
                             end
-                            if closest and closest.Character and closest.Character:FindFirstChild("Head") then
-                                pcall(function() workspace.CurrentCamera.CFrame = CFrame.new(workspace.CurrentCamera.CFrame.Position, closest.Character.Head.Position) end)
+                            if closest and closest:FindFirstChild("Head") then
+                                pcall(function() workspace.CurrentCamera.CFrame = CFrame.new(workspace.CurrentCamera.CFrame.Position, closest.Head.Position) end)
                             end
                         end
                     end)
@@ -2370,12 +2385,13 @@ SettingsTab:CreateButton({
                         local mousePos = Vector2.new(mouse.X, mouse.Y)
                         
                         for _, v in pairs(game.Players:GetPlayers()) do
-                            if v ~= Player and v.Character and v.Character:FindFirstChild("Head") and v.Character:FindFirstChild("Humanoid") and v.Character.Humanoid.Health > 0 then
-                                local pos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(v.Character.Head.Position)
+                            local validChar = GetOSCharacter(v)
+                            if validChar then
+                                local pos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(validChar.Head.Position)
                                 if onScreen then
                                     local dist = (Vector2.new(pos.X, pos.Y) - mousePos).Magnitude
                                     if dist < shortestDistance then
-                                        closestPart = v.Character.Head
+                                        closestPart = validChar.Head
                                         shortestDistance = dist
                                     end
                                 end
