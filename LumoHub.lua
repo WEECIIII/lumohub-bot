@@ -162,6 +162,7 @@ local function CreateProtectionsTab(Window)
         end,
     })
 
+
     MiscTab:CreateSection("Quality of Life")
     MiscTab:CreateButton({
         Name = "Server Hopper (Smallest Server)",
@@ -527,6 +528,7 @@ local function LoadLumoHub(activeKey, authGui)
             end,
         })
         
+
         CombatTab:CreateSection("Auto Win & Guns")
         
         local autoGrabGun = false
@@ -609,7 +611,7 @@ local function LoadLumoHub(activeKey, authGui)
             end,
         })
 
-        
+
         CombatTab:CreateButton({
             Name = "Grab Dropped Gun",
             Callback = function()
