@@ -2155,7 +2155,8 @@ SettingsTab:CreateButton({
         local osEspSettings = {
             Boxes = false,
             Tracers = false,
-            Names = false
+            Names = false,
+            Color = Color3.fromRGB(255, 0, 0)
         }
         
         local osEspDrawings = {}
@@ -2182,18 +2183,15 @@ SettingsTab:CreateButton({
                         if Drawing then
                             pcall(function()
                                 osEspDrawings[v].Box = Drawing.new("Square")
-                                osEspDrawings[v].Box.Color = Color3.fromRGB(255, 0, 0)
                                 osEspDrawings[v].Box.Thickness = 1
                                 osEspDrawings[v].Box.Filled = false
                                 osEspDrawings[v].Box.Transparency = 1
                                 
                                 osEspDrawings[v].Tracer = Drawing.new("Line")
-                                osEspDrawings[v].Tracer.Color = Color3.fromRGB(255, 0, 0)
                                 osEspDrawings[v].Tracer.Thickness = 1
                                 osEspDrawings[v].Tracer.Transparency = 1
                                 
                                 osEspDrawings[v].Name = Drawing.new("Text")
-                                osEspDrawings[v].Name.Color = Color3.fromRGB(255, 255, 255)
                                 osEspDrawings[v].Name.Size = 16
                                 osEspDrawings[v].Name.Center = true
                                 osEspDrawings[v].Name.Outline = true
@@ -2211,14 +2209,17 @@ SettingsTab:CreateButton({
                             
                             drawings.Box.Size = Vector2.new(width, height)
                             drawings.Box.Position = Vector2.new(pos.X - width / 2, headPos.Y)
+                            drawings.Box.Color = osEspSettings.Color
                             drawings.Box.Visible = osEspSettings.Boxes
                             
                             drawings.Tracer.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
                             drawings.Tracer.To = Vector2.new(pos.X, pos.Y)
+                            drawings.Tracer.Color = osEspSettings.Color
                             drawings.Tracer.Visible = osEspSettings.Tracers
                             
                             drawings.Name.Text = v.Name
                             drawings.Name.Position = Vector2.new(pos.X, headPos.Y - 20)
+                            drawings.Name.Color = osEspSettings.Color
                             drawings.Name.Visible = osEspSettings.Names
                         else
                             drawings.Box.Visible = false
@@ -2242,6 +2243,15 @@ SettingsTab:CreateButton({
             Callback = function(Value)
                 osEspSettings.Boxes = Value
             end,
+        })
+        
+        MainTab:CreateColorPicker({
+            Name = "ESP Color",
+            Color = Color3.fromRGB(255, 0, 0),
+            Flag = "OS_ESP_ColorPicker",
+            Callback = function(Value)
+                osEspSettings.Color = Value
+            end
         })
         
         MainTab:CreateToggle({
