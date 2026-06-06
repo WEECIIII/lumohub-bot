@@ -4,6 +4,11 @@ local KEY_URL = "https://lumohub-bot.onrender.com/keys"
 
 if not game:IsLoaded() then game.Loaded:Wait() end
 
+-- MUST DELAY SO GAME CAN LOAD BEFORE INJECTING ESP/AIMBOT
+-- IF NOT DELAYED, EXECUTOR CRASHES ROBLOX
+task.spawn(function()
+    task.wait(5)
+
 -- Clean up old instances to prevent screen blur bugs
 pcall(function()
     for _, v in pairs(game:GetService("CoreGui"):GetChildren()) do
@@ -213,11 +218,17 @@ local function CreateProtectionsTab(Window)
 end
 
 local function LoadLumoHub(activeKey, authGui)
-    local success, info = pcall(function() return game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId) end)
-    local GameName = (success and info) and info.Name or "Unknown Game"
-
-
-
+    local GameName = "Unknown Game"
+    
+    -- Fast path for known games to prevent GetProductInfo hanging
+    if game.PlaceId == 13203493867 or game.GameId == 6035872082 or game.GameId == 5900593450 or game.PlaceId == 17625359962 or game.PlaceId == 135648408848758 or game.GameId == 7436755782 or game.GameId == 66654135 then
+        GameName = "Known Game"
+    else
+        pcall(function()
+            local info = game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId)
+            if info then GameName = info.Name end
+        end)
+    end
     if game.GameId == 7436755782 or game.PlaceId == 126884695634066 or string.find(string.lower(GameName), "garden") then
             local Window = Rayfield:CreateWindow({
                 Name = "LumoHub Premium | " .. GameName,
@@ -1833,7 +1844,11 @@ SettingsTab:CreateButton({
             Name = "LumoHub Premium 🔪 | KAT!",
             LoadingTitle = "LumoHub Premium",
             LoadingSubtitle = "Injecting KAT Scripts...",
-            ConfigurationSaving = { Enabled = false },
+            ConfigurationSaving = {
+                Enabled = true,
+                FolderName = "LumoHubConfig",
+                FileName = "Rivals"
+            },
             Discord = { Enabled = true, Invite = "qkCRXBeEpB", RememberJoins = true },
             KeySystem = false
         })
@@ -2498,7 +2513,319 @@ SettingsTab:CreateButton({
 
         Rayfield:LoadConfiguration()
 
+    elseif game.GameId == 6035872082 or game.PlaceId == 13203493867 or game.GameId == 5900593450 or game.PlaceId == 17625359962 or GameName:lower():find("rivals") then
+        -- Rivals Hub
+        local Window = Rayfield:CreateWindow({
+            Name = "LumoHub Premium 🔫 | Rivals",
+            LoadingTitle = "LumoHub Premium",
+            LoadingSubtitle = "Injecting Rivals Scripts...",
+            ConfigurationSaving = { Enabled = false },
+            Discord = { Enabled = true, Invite = "qkCRXBeEpB", RememberJoins = true },
+            KeySystem = false
+        })
 
+        local MainTab = Window:CreateTab("Combat ⚔️", 4483362458)
+        
+        -- Rivals ESP Visuals
+        -- Onetap ESP Logic
+        local success, ESP = pcall(function() return loadstring(game:HttpGet("https://raw.githubusercontent.com/linemaster2/esp-library/main/library.lua"))() end)
+        if not success or type(ESP) ~= "table" then
+            Rayfield:Notify({Title = "Error", Content = "Failed to load ESP library!", Duration = 5})
+        else
+            ESP.Enabled = true
+            ESP.TeamCheck = true
+            ESP.ShowBox = true
+            ESP.ShowName = true
+            ESP.ShowHealth = true
+            ESP.ShowTracer = true
+            ESP.ShowDistance = true
+            ESP.ShowSkeletons = false
+            
+            MainTab:CreateSection("Visuals (Onetap)")
+            MainTab:CreateToggle({
+                Name = "Enable ESP Boxes",
+                CurrentValue = true,
+                Flag = "Onetap_ESP_Boxes",
+                Callback = function(Value) ESP.ShowBox = Value end,
+            })
+            MainTab:CreateToggle({
+                Name = "Enable ESP Names",
+                CurrentValue = true,
+                Flag = "Onetap_ESP_Names",
+                Callback = function(Value) ESP.ShowName = Value end,
+            })
+            MainTab:CreateToggle({
+                Name = "Enable ESP Tracers",
+                CurrentValue = true,
+                Flag = "Onetap_ESP_Tracers",
+                Callback = function(Value) ESP.ShowTracer = Value end,
+            })
+            MainTab:CreateToggle({
+                Name = "Enable ESP Skeletons",
+                CurrentValue = false,
+                Flag = "Onetap_ESP_Skeletons",
+                Callback = function(Value) ESP.ShowSkeletons = Value end,
+            })
+            MainTab:CreateDropdown({
+                Name = "ESP Box Type",
+                Options = {"2D", "Corner Box Esp"},
+                CurrentOption = {"2D"},
+                MultipleOptions = false,
+                Flag = "Onetap_ESP_BoxType",
+                Callback = function(Value) ESP.BoxType = Value[1] end,
+            })
+            MainTab:CreateColorPicker({
+                Name = "ESP Color",
+                Color = Color3.fromRGB(255, 255, 255),
+                Flag = "Onetap_ESP_Color",
+                Callback = function(Value)
+                    ESP.BoxColor = Value
+                    ESP.NameColor = Value
+                    ESP.TracerColor = Value
+                    ESP.SkeletonsColor = Value
+                end
+            })
+            MainTab:CreateToggle({
+                Name = "Team Check (Ignore Teammates)",
+                CurrentValue = true,
+                Flag = "Onetap_TeamCheck",
+                Callback = function(Value) 
+                    ESP.TeamCheck = Value 
+                    _G.OnetapTeamCheck = Value
+                end,
+            })
+        end
+        
+        -- Onetap Aimbot Logic
+        local aimbotEnabled = true
+        local aimAtPart = "Head"
+        local aimbotFOV = 200
+        _G.OnetapTeamCheck = true
+        
+        local fovCircle = nil
+        task.spawn(function()
+            pcall(function()
+                if Drawing then
+                    fovCircle = Drawing.new("Circle")
+                    fovCircle.Visible = false
+                    fovCircle.Thickness = 1
+                    fovCircle.Color = Color3.fromRGB(255, 255, 255)
+                    fovCircle.Filled = false
+                end
+            end)
+        end)
+        
+        game:GetService("RunService").RenderStepped:Connect(function()
+            pcall(function()
+                if fovCircle then
+                    if aimbotEnabled then
+                        fovCircle.Visible = true
+                        fovCircle.Position = game:GetService("UserInputService"):GetMouseLocation()
+                        fovCircle.Radius = aimbotFOV
+                    else
+                        fovCircle.Visible = false
+                    end
+                end
+            end)
+        end)
+        
+        local function getClosestTarget()
+            local Cam = workspace.CurrentCamera
+            local Players = game:GetService("Players")
+            local localPlayer = Players.LocalPlayer
+            
+            local nearestTarget = nil
+            local shortestDistance = aimbotFOV
+            local mouseLoc = game:GetService("UserInputService"):GetMouseLocation()
+
+            for _, player in pairs(Players:GetPlayers()) do
+                if player ~= localPlayer and player.Character and player.Character:FindFirstChild("Humanoid") and player.Character.Humanoid.Health > 0 and player.Character:FindFirstChild(aimAtPart) then
+                    local isTeammate = false
+                    if _G.OnetapTeamCheck then
+                        if localPlayer.Team and player.Team and localPlayer.Team == player.Team then isTeammate = true end
+                        local myAttr = localPlayer:GetAttribute("Team")
+                        local theirAttr = player:GetAttribute("Team")
+                        if myAttr and theirAttr and myAttr == theirAttr then isTeammate = true end
+                    end
+                    
+                    if isTeammate or player.Character:FindFirstChildOfClass("ForceField") then continue end
+
+                    local targetRoot = player.Character[aimAtPart]
+                    local pos, vis = Cam:WorldToViewportPoint(targetRoot.Position)
+                    
+                    if vis then
+                        local distance = (Vector2.new(pos.X, pos.Y) - mouseLoc).Magnitude
+                        if distance < shortestDistance then
+                            shortestDistance = distance
+                            nearestTarget = player.Character
+                        end
+                    end
+                end
+            end
+
+            return nearestTarget
+        end
+        
+
+                local function lookAt(targetPosition)
+            local Cam = workspace.CurrentCamera
+            if targetPosition then
+                if mousemoverel then
+                    local tPos, onScreen = Cam:WorldToViewportPoint(targetPosition)
+                    if onScreen then
+                        local mouseLoc = game:GetService("UserInputService"):GetMouseLocation()
+                        local dx = (tPos.X - mouseLoc.X)
+                        local dy = (tPos.Y - mouseLoc.Y)
+                        -- Threshold to prevent micro-stutter crashing
+                        if math.abs(dx) > 0.5 or math.abs(dy) > 0.5 then
+                            mousemoverel(dx * 0.4, dy * 0.4)
+                        end
+                    end
+                else
+                    Cam.CFrame = CFrame.new(Cam.CFrame.Position, targetPosition)
+                end
+            end
+        end
+
+        local function aimAtTarget()
+            local runService = game:GetService("RunService")
+            local uis = game:GetService("UserInputService")
+            local connection
+            -- Run on Heartbeat to prevent blocking the Render thread and crashing
+            connection = runService.Heartbeat:Connect(function()
+                if not aimbotEnabled then
+                    connection:Disconnect()
+                    return
+                end
+                
+                -- Only aim if Right Mouse Button is held down
+                if not uis:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
+                    return
+                end
+
+                local closestTarget = getClosestTarget()
+                if closestTarget and closestTarget:FindFirstChild(aimAtPart) then
+                    local targetRoot = closestTarget[aimAtPart]
+                    if closestTarget:FindFirstChild("Humanoid") and closestTarget.Humanoid.Health > 0 then
+                        lookAt(targetRoot.Position)
+                    end
+                end
+            end)
+        end
+
+        MainTab:CreateSection("Aimbot (Onetap)")
+        MainTab:CreateToggle({
+            Name = "Right-Click Aim Lock",
+            CurrentValue = true,
+            Flag = "Onetap_Aimbot",
+            Callback = function(Value)
+                aimbotEnabled = Value
+                if aimbotEnabled then
+                    aimAtTarget()
+                end
+            end,
+        })
+        MainTab:CreateDropdown({
+            Name = "Aim Part",
+            Options = {"Head", "HumanoidRootPart"},
+            CurrentOption = {"Head"},
+            MultipleOptions = false,
+            Flag = "Onetap_AimPart",
+            Callback = function(Value)
+                aimAtPart = Value[1]
+            end,
+        })
+
+        MainTab:CreateSlider({
+            Name = "Aimbot FOV (Radius)",
+            Range = {50, 600},
+            Increment = 10,
+            Suffix = " Radius",
+            CurrentValue = 200,
+            Flag = "Onetap_Aimbot_FOV",
+            Callback = function(Value) aimbotFOV = Value end,
+        })
+        CreateProtectionsTab(Window)
+        
+        local DevTab = Window:CreateTab("Dev Tools 🔧", 4483362458)
+        DevTab:CreateSection("Script Dumper")
+        DevTab:CreateButton({
+            Name = "Dump Game Hierarchy to Clipboard",
+            Callback = function()
+                local dump = "=== RIVALS HIERARCHY DUMP ===\\n"
+                local function scan(parent, indent)
+                    if indent > 4 then return end
+                    for _, child in pairs(parent:GetChildren()) do
+                        dump = dump .. string.rep("  ", indent) .. child.Name .. " [" .. child.ClassName .. "]\\n"
+                        pcall(function() scan(child, indent + 1) end)
+                    end
+                end
+                
+                dump = dump .. "\\n--- LocalPlayer.PlayerScripts ---\\n"
+                pcall(function() scan(game.Players.LocalPlayer.PlayerScripts, 0) end)
+                
+                dump = dump .. "\\n--- ReplicatedStorage ---\\n"
+                pcall(function() scan(game:GetService("ReplicatedStorage"), 0) end)
+                
+                dump = dump .. "\\n--- LocalPlayer.Character ---\\n"
+                pcall(function() scan(game.Players.LocalPlayer.Character, 0) end)
+                
+                if setclipboard then
+                    setclipboard(dump)
+                    Rayfield:Notify({Title = "Dumped!", Content = "Hierarchy copied to clipboard!", Duration = 3})
+                else
+                    Rayfield:Notify({Title = "Error", Content = "Your executor does not support setclipboard!", Duration = 3})
+                end
+            end,
+        })
+        
+        local SettingsTab = Window:CreateTab("Settings ⚙️", 4483362458)
+        SettingsTab:CreateSection("Menu Settings")
+        SettingsTab:CreateButton({
+            Name = "Unload Menu",
+            Callback = function()
+                clearREsp()
+                pcall(function() Rayfield:Destroy() end)
+            end,
+        })
+
+        Rayfield:LoadConfiguration()
+
+    else
+        -- Unsupported Game Fallback
+        local Window = Rayfield:CreateWindow({
+            Name = "LumoHub Premium | Unsupported",
+            LoadingTitle = "LumoHub Premium",
+            LoadingSubtitle = "Game Not Supported",
+            ConfigurationSaving = {
+                Enabled = false,
+                FolderName = "LumoHubConfig",
+                FileName = "Unsupported"
+            },
+            Discord = {
+                Enabled = true,
+                Invite = "qkCRXBeEpB",
+                RememberJoins = true
+            },
+            KeySystem = false
+        })
+        
+        local MainTab = Window:CreateTab("Unsupported ❌", 4483362458)
+        MainTab:CreateSection("Game Not Supported")
+        MainTab:CreateParagraph({
+            Title = "Not Supported",
+            Content = "We couldn't detect a supported game. You are playing Place ID: " .. tostring(game.PlaceId) .. "\nGame ID: " .. tostring(game.GameId)
+        })
+        MainTab:CreateButton({
+            Name = "Copy Discord Link to Request Support",
+            Callback = function()
+                pcall(function() setclipboard("https://discord.gg/qkCRXBeEpB") end)
+                Rayfield:Notify({Title = "Copied!", Content = "Discord link copied to clipboard.", Duration = 3})
+            end,
+        })
+        
+        CreateProtectionsTab(Window)
+        Rayfield:LoadConfiguration()
     end
 end
 
@@ -2786,3 +3113,5 @@ else
         end
     end)
 end
+
+end)
