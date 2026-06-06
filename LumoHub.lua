@@ -212,7 +212,77 @@ local function CreateProtectionsTab(Window)
     })
 end
 
-local function LoadLumoHub(activeKey, authGui)
+local local function InjectRobloxProfile()
+    task.spawn(function()
+        local coreGui = game:GetService("CoreGui")
+        local rayfield = coreGui:WaitForChild("Rayfield", 10)
+        if not rayfield then return end
+        
+        local main = rayfield:WaitForChild("Main", 5)
+        if not main then return end
+        
+        -- Prevent duplicates
+        if main:FindFirstChild("LumoHubProfile") then return end
+        
+        local profileFrame = Instance.new("Frame")
+        profileFrame.Name = "LumoHubProfile"
+        profileFrame.Size = UDim2.new(0, 160, 0, 44)
+        profileFrame.Position = UDim2.new(0, 12, 1, -56) -- Bottom Left corner of Main
+        profileFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25) -- slightly darker than Rayfield sidebar
+        profileFrame.BorderSizePixel = 0
+        profileFrame.ZIndex = 9999
+        profileFrame.Parent = main
+        
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(0, 8)
+        corner.Parent = profileFrame
+        
+        local stroke = Instance.new("UIStroke")
+        stroke.Color = Color3.fromRGB(50, 50, 50)
+        stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+        stroke.Parent = profileFrame
+        
+        local avatar = Instance.new("ImageLabel")
+        avatar.Size = UDim2.new(0, 30, 0, 30)
+        avatar.Position = UDim2.new(0, 7, 0.5, -15)
+        avatar.BackgroundTransparency = 1
+        avatar.Image = "rbxthumb://type=AvatarHeadShot&id=" .. game.Players.LocalPlayer.UserId .. "&w=150&h=150"
+        avatar.ZIndex = 10000
+        avatar.Parent = profileFrame
+        
+        local avatarCorner = Instance.new("UICorner")
+        avatarCorner.CornerRadius = UDim.new(1, 0)
+        avatarCorner.Parent = avatar
+        
+        local nameLabel = Instance.new("TextLabel")
+        nameLabel.Size = UDim2.new(1, -50, 0, 16)
+        nameLabel.Position = UDim2.new(0, 45, 0, 6)
+        nameLabel.BackgroundTransparency = 1
+        nameLabel.Text = game.Players.LocalPlayer.DisplayName
+        nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+        nameLabel.TextSize = 14
+        nameLabel.Font = Enum.Font.GothamBold
+        nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+        nameLabel.ZIndex = 10000
+        nameLabel.Parent = profileFrame
+        
+        local userLabel = Instance.new("TextLabel")
+        userLabel.Size = UDim2.new(1, -50, 0, 14)
+        userLabel.Position = UDim2.new(0, 45, 0, 22)
+        userLabel.BackgroundTransparency = 1
+        userLabel.Text = "@" .. game.Players.LocalPlayer.Name
+        userLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+        userLabel.TextSize = 12
+        userLabel.Font = Enum.Font.Gotham
+        userLabel.TextXAlignment = Enum.TextXAlignment.Left
+        userLabel.ZIndex = 10000
+        userLabel.Parent = profileFrame
+    end)
+end
+
+function LoadLumoHub(activeKey, authGui)
+    InjectRobloxProfile()
+
     local GameName = "Unknown Game"
     
     -- Fast path for known games to prevent GetProductInfo hanging

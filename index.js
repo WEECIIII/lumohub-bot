@@ -169,23 +169,7 @@ const server = http.createServer(async (req, res) => {
             return;
         }
         
-        let discordName = "Unknown";
-        let discordAvatar = "https://cdn.discordapp.com/embed/avatars/0.png";
-        
-        const generatedBy = keyData.generatedBy;
-        if (generatedBy && generatedBy !== "unknown") {
-            try {
-                const user = await client.users.fetch(generatedBy);
-                if (user) {
-                    discordName = user.username;
-                    discordAvatar = user.displayAvatarURL({ format: 'png', size: 128 });
-                }
-            } catch (err) {
-                console.error("[LumoHub] Failed to fetch discord user info for /verify");
-            }
-        }
-        
-        const resData = `VALID|${discordName}|${discordAvatar}`;
+        const resData = `VALID`;
         
         if (!keyData.hwid) {
             // First time use! Claim the key for this HWID
@@ -262,10 +246,6 @@ const commands = [
                 .setRequired(false)
                 .setMinValue(1)
                 .setMaxValue(50))
-        .addUserOption(option =>
-            option.setName('creator')
-                .setDescription('Select the Discord user who is credited for these keys in the loader')
-                .setRequired(false))
         .toJSON(),
     new SlashCommandBuilder()
         .setName('testwelcome')
