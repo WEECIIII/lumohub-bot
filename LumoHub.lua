@@ -4,11 +4,6 @@ local KEY_URL = "https://lumohub-bot.onrender.com/keys"
 
 if not game:IsLoaded() then game.Loaded:Wait() end
 
--- MUST DELAY SO GAME CAN LOAD BEFORE INJECTING ESP/AIMBOT
--- IF NOT DELAYED, EXECUTOR CRASHES ROBLOX
-task.spawn(function()
-    task.wait(5)
-
 -- Clean up old instances to prevent screen blur bugs
 pcall(function()
     for _, v in pairs(game:GetService("CoreGui"):GetChildren()) do
@@ -2514,6 +2509,9 @@ SettingsTab:CreateButton({
         Rayfield:LoadConfiguration()
 
     elseif game.GameId == 6035872082 or game.PlaceId == 13203493867 or game.GameId == 5900593450 or game.PlaceId == 17625359962 or GameName:lower():find("rivals") then
+        -- Rivals crashes if executed instantly, wait 5 seconds!
+        task.wait(5)
+        
         -- Rivals Hub
         local Window = Rayfield:CreateWindow({
             Name = "LumoHub Premium 🔫 | Rivals",
@@ -3114,4 +3112,3 @@ else
     end)
 end
 
-end)
