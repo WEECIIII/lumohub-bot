@@ -212,7 +212,7 @@ local function CreateProtectionsTab(Window)
     })
 end
 
-local local function InjectRobloxProfile()
+local function InjectRobloxProfile()
     task.spawn(function()
         local coreGui = game:GetService("CoreGui")
         local rayfield = coreGui:WaitForChild("Rayfield", 10)
