@@ -2932,7 +2932,10 @@ local function CheckSavedKey()
             return game:HttpGet("https://lumohub-bot.onrender.com/verify?key=" .. saved .. "&hwid=" .. HWID)
         end)
         
-        if success and result == "VALID" then
+        if success and string.sub(result, 1, 5) == "VALID" then
+            local parts = string.split(result, "|")
+            _G.LumoHub_CreatorName = parts[2] or "LumoHub Admin"
+            _G.LumoHub_CreatorAvatar = parts[3] or ""
             return saved
         end
     end
