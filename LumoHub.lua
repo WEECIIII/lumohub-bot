@@ -2865,26 +2865,53 @@ SettingsTab:CreateButton({
                 _G_ChestFarm = Value
                 if Value then
                     spawn(function()
-                        while task.wait(0.7) do
+                        while task.wait(0.1) do
                             if not _G_ChestFarm then break end
+                            local char = game.Players.LocalPlayer.Character
+                            if not char or not char:FindFirstChild("HumanoidRootPart") then task.wait(1) continue end
+                            local hrp = char.HumanoidRootPart
+                            
+                            local foundChest = false
                             pcall(function()
                                 for i, v in pairs(game:GetService("Workspace"):GetChildren()) do
                                     if not _G_ChestFarm then break end
-                                    if v.Name:find("Chest") and v.ClassName == "Part" then
-                                        local char = game.Players.LocalPlayer.Character
-                                        if char and char:FindFirstChild("HumanoidRootPart") then
-                                            local distance = (v.CFrame.Position - char.HumanoidRootPart.Position).Magnitude
+                                    if string.find(v.Name, "Chest") then
+                                        local targetCFrame = nil
+                                        if v:IsA("BasePart") then
+                                            targetCFrame = v.CFrame
+                                        elseif v:IsA("Model") and v.PrimaryPart then
+                                            targetCFrame = v.PrimaryPart.CFrame
+                                        elseif v:IsA("Model") and v:FindFirstChildWhichIsA("BasePart") then
+                                            targetCFrame = v:FindFirstChildWhichIsA("BasePart").CFrame
+                                        end
+                                        
+                                        if targetCFrame then
+                                            foundChest = true
+                                            local distance = (targetCFrame.Position - hrp.Position).Magnitude
                                             local speed = 300 -- Safe speed for bypass
                                             
                                             local tweenService = game:GetService("TweenService")
                                             local info = TweenInfo.new(distance / speed, Enum.EasingStyle.Linear)
-                                            local tween = tweenService:Create(char.HumanoidRootPart, info, {CFrame = v.CFrame})
+                                            local tween = tweenService:Create(hrp, info, {CFrame = targetCFrame})
                                             tween:Play()
-                                            task.wait(distance / speed + 0.2)
+                                            
+                                            -- Wait for tween to finish or toggle to be disabled
+                                            local waitTime = distance / speed
+                                            local elapsed = 0
+                                            while elapsed < waitTime and _G_ChestFarm do
+                                                task.wait(0.1)
+                                                elapsed = elapsed + 0.1
+                                            end
+                                            task.wait(0.2) -- Extra delay to ensure chest is picked up
                                         end
                                     end
                                 end
                             end)
+                            
+                            if not foundChest then
+                                -- No chests found, wait a bit longer
+                                task.wait(2)
+                            end
                         end
                     end)
                 end
