@@ -698,10 +698,13 @@ client.on('interactionCreate', async interaction => {
                     .setDescription('Current execution status of our supported Roblox scripts.')
                     .setColor(0xFECC23) // LumoHub gold color
                     .addFields(
-                        { name: '🟢 Streetz War 2', value: '```Active & Working```', inline: false },
-                        { name: '🟢 Murder Mystery 2', value: '```Active & Working```', inline: false },
-                        { name: '🟡 Grow a Garden', value: '```Dropping VERY soon... 👀```', inline: false },
-                        { name: '🔴 Blade Ball', value: '```Under Development```', inline: false },
+                        { name: '🟢 Streetz War 2', value: '```\nActive & Working\n```', inline: false },
+                        { name: '🟢 Murder Mystery 2', value: '```\nActive & Working\n```', inline: false },
+                        { name: '🟢 Grow a Garden', value: '```\nActive & Working\n```', inline: false },
+                        { name: '🟢 KAT!', value: '```\nActive & Working\n```', inline: false },
+                        { name: '🟢 [FPS] One Scope', value: '```\nActive & Working\n```', inline: false },
+                        { name: '🟢 Rivals', value: '```\nActive & Working\n```', inline: false },
+                        { name: '🔴 Blox Fruits', value: '```\nUnder Development\n```', inline: false },
                         { name: '🚀 Future Projects', value: '*More games coming soon...*', inline: false }
                     )
                     .setThumbnail(interaction.guild.iconURL({ dynamic: true, size: 256 }) || null)
