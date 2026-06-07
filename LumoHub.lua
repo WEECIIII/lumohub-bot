@@ -2841,8 +2841,71 @@ SettingsTab:CreateButton({
 
         Rayfield:LoadConfiguration()
 
+    elseif game.PlaceId == 2753915549 or game.PlaceId == 4442272083 or game.PlaceId == 7449423635 or game.GameId == 994732206 or GameName:lower():find("blox fruits") then
+        local Window = Rayfield:CreateWindow({
+            Name = "LumoHub Premium 🍎 | Blox Fruits",
+            LoadingTitle = "LumoHub Premium",
+            LoadingSubtitle = "Injecting Blox Fruits Scripts...",
+            ConfigurationSaving = { Enabled = false },
+            Discord = { Enabled = true, Invite = "qkCRXBeEpB", RememberJoins = true },
+            KeySystem = false
+        })
+
+        local MainTab = Window:CreateTab("Auto Farm ⚔️", 4483362458)
+        local SettingsTab = Window:CreateTab("Settings ⚙️", 4483362458)
+        
+        MainTab:CreateSection("Chest Farming")
+        
+        local _G_ChestFarm = false
+        MainTab:CreateToggle({
+            Name = "Auto Chest Farm (Safe Tween)",
+            CurrentValue = false,
+            Flag = "BF_ChestFarm",
+            Callback = function(Value)
+                _G_ChestFarm = Value
+                if Value then
+                    spawn(function()
+                        while task.wait(0.7) do
+                            if not _G_ChestFarm then break end
+                            pcall(function()
+                                for i, v in pairs(game:GetService("Workspace"):GetChildren()) do
+                                    if not _G_ChestFarm then break end
+                                    if v.Name:find("Chest") and v.ClassName == "Part" then
+                                        local char = game.Players.LocalPlayer.Character
+                                        if char and char:FindFirstChild("HumanoidRootPart") then
+                                            local distance = (v.CFrame.Position - char.HumanoidRootPart.Position).Magnitude
+                                            local speed = 300 -- Safe speed for bypass
+                                            
+                                            local tweenService = game:GetService("TweenService")
+                                            local info = TweenInfo.new(distance / speed, Enum.EasingStyle.Linear)
+                                            local tween = tweenService:Create(char.HumanoidRootPart, info, {CFrame = v.CFrame})
+                                            tween:Play()
+                                            task.wait(distance / speed + 0.2)
+                                        end
+                                    end
+                                end
+                            end)
+                        end
+                    end)
+                end
+            end,
+        })
+
+        MainTab:CreateParagraph({Title = "Status", Content = "Blox Fruits script is under active development. More features like Safe Auto Quest, Fast Attack Bypass, and Bring Mobs are coming very soon!"})
+
+        CreateProtectionsTab(Window)
+        
+        SettingsTab:CreateButton({
+            Name = "Unload Menu",
+            Callback = function()
+                _G_ChestFarm = false
+                pcall(function() Rayfield:Destroy() end)
+            end,
+        })
+        
+        Rayfield:LoadConfiguration()
+
     else
-        -- Unsupported Game Fallback
         local Window = Rayfield:CreateWindow({
             Name = "LumoHub Premium | Unsupported",
             LoadingTitle = "LumoHub Premium",
