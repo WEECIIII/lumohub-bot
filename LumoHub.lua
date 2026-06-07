@@ -3062,6 +3062,76 @@ SettingsTab:CreateButton({
                 InfJump = Value
             end,
         })
+        
+        local DevTab = Window:CreateTab("Dev Tools 🛠️", 4483362458)
+        DevTab:CreateSection("Script & Remote Dumper")
+        
+        DevTab:CreateButton({
+            Name = "Dump All RemoteEvents to Clipboard",
+            Callback = function()
+                local str = "--- DODGE THE LASERS REMOTES ---\n"
+                for _, v in pairs(game:GetDescendants()) do
+                    if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
+                        pcall(function() str = str .. v:GetFullName() .. " [" .. v.ClassName .. "]\n" end)
+                    end
+                end
+                pcall(function() setclipboard(str) end)
+                Rayfield:Notify({Title = "Dumped!", Content = "All Remotes copied to clipboard.", Duration = 3})
+            end,
+        })
+        
+        DevTab:CreateButton({
+            Name = "Dump All Scripts (Paths) to Clipboard",
+            Callback = function()
+                local str = "--- DODGE THE LASERS SCRIPTS ---\n"
+                for _, v in pairs(game:GetDescendants()) do
+                    if v:IsA("LocalScript") or v:IsA("ModuleScript") then
+                        pcall(function() str = str .. v:GetFullName() .. " [" .. v.ClassName .. "]\n" end)
+                    end
+                end
+                pcall(function() setclipboard(str) end)
+                Rayfield:Notify({Title = "Dumped!", Content = "All Script paths copied to clipboard.", Duration = 3})
+            end,
+        })
+        
+        DevTab:CreateSection("Remote Spy")
+        
+        local SpyEnabled = false
+        DevTab:CreateToggle({
+            Name = "Remote Spy (Print FireServer to F9)",
+            CurrentValue = false,
+            Flag = "DL_RemoteSpy",
+            Callback = function(Value)
+                SpyEnabled = Value
+                if Value and not _G.LumoHubSpyHooked then
+                    _G.LumoHubSpyHooked = true
+                    local osGm = getrawmetatable and getrawmetatable(game)
+                    local osSetreadonly = setreadonly or make_writeable
+                    if osGm and osSetreadonly and newcclosure and getnamecallmethod then
+                        pcall(function()
+                            osSetreadonly(osGm, false)
+                            local oldNamecall = osGm.__namecall
+                            osGm.__namecall = newcclosure(function(self, ...)
+                                local method = getnamecallmethod()
+                                if SpyEnabled and not checkcaller() and (method == "FireServer" or method == "InvokeServer") then
+                                    local args = {...}
+                                    print("--- LumoHub Remote Spy ---")
+                                    print("Fired:", self:GetFullName())
+                                    print("Method:", method)
+                                    print("Arguments:")
+                                    for i, v in pairs(args) do
+                                        print("  ["..tostring(i).."] =", tostring(v), "("..typeof(v)..")")
+                                    end
+                                    print("--------------------------")
+                                end
+                                return oldNamecall(self, ...)
+                            end)
+                            osSetreadonly(osGm, true)
+                        end)
+                    end
+                end
+            end,
+        })
 
         CreateProtectionsTab(Window)
         Rayfield:LoadConfiguration()
