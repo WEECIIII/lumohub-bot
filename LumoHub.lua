@@ -3014,51 +3014,57 @@ SettingsTab:CreateButton({
             end,
         })
 
-        MainTab:CreateSection("OP Exploits (Use at own risk)")
+        MainTab:CreateSection("Opponent Choice ESP")
 
-        local SpamRewards = false
+        local OpponentESP = false
         MainTab:CreateToggle({
-            Name = "Spam Free Rewards (OP)",
+            Name = "See Opponent Choice (Auto-Scan)",
             CurrentValue = false,
-            Flag = "SAB_SpamRewards",
+            Flag = "SAB_OpponentESP",
             Callback = function(Value)
-                SpamRewards = Value
+                OpponentESP = Value
                 if Value then
                     spawn(function()
-                        local rs = game:GetService("ReplicatedStorage")
-                        local claimOffline = rs:FindFirstChild("Claim10OfflineEarnings", true)
-                        local requestOffline = rs:FindFirstChild("RequestOfflineEarnings", true)
-                        local tutorialMatch = rs:FindFirstChild("TutorialMatchResult", true)
-                        local giftsLoaded = rs:FindFirstChild("GiftedPassesLoaded", true)
-                        local settingsLoaded = rs:FindFirstChild("SettingsLoaded", true)
-
-                        while SpamRewards do
+                        local lastNotified = ""
+                        while OpponentESP do
+                            local found = false
+                            -- Tapa 1: Etsitään Workspace-arvoja
+                            for _, v in pairs(workspace:GetDescendants()) do
+                                if v:IsA("StringValue") and (v.Value == "Split" or v.Value == "Steal") then
+                                    local msg = "Valinta löydetty: " .. v.Value
+                                    if msg ~= lastNotified then
+                                        Rayfield:Notify({Title = "Vastustajan Valinta!", Content = msg, Duration = 5})
+                                        lastNotified = msg
+                                    end
+                                    found = true
+                                end
+                            end
+                            
+                            -- Tapa 2: Kokeillaan kutsua GetMatchState
                             pcall(function()
-                                if claimOffline then claimOffline:FireServer() end
-                                if requestOffline then requestOffline:FireServer() end
-                                if tutorialMatch then tutorialMatch:FireServer() end
-                                if giftsLoaded then giftsLoaded:FireServer() end
-                                if settingsLoaded then settingsLoaded:FireServer() end
+                                local getMatchState = game:GetService("ReplicatedStorage"):FindFirstChild("GetMatchState", true)
+                                if getMatchState then
+                                    local state = getMatchState:InvokeServer()
+                                    local stateStr = tostring(state)
+                                    if string.find(stateStr, "Split") or string.find(stateStr, "Steal") then
+                                        if stateStr ~= lastNotified then
+                                            Rayfield:Notify({Title = "Match State päivittyi!", Content = "Tila sisältää: " .. stateStr, Duration = 5})
+                                            lastNotified = stateStr
+                                        end
+                                    end
+                                end
                             end)
-                            task.wait(0.05) -- Spam 20 times a second
+                            
+                            task.wait(1)
                         end
                     end)
                 end
             end,
         })
-
-        MainTab:CreateButton({
-            Name = "Claim Tutorial Rewards instantly",
-            Callback = function()
-                local rs = game:GetService("ReplicatedStorage")
-                local tutorialMatch = rs:FindFirstChild("TutorialMatchResult", true)
-                if tutorialMatch then
-                    pcall(function() tutorialMatch:FireServer() end)
-                    Rayfield:Notify({Title = "Success", Content = "Fired TutorialMatchResult Remote!", Duration = 3})
-                else
-                    Rayfield:Notify({Title = "Error", Content = "Could not find Tutorial remote.", Duration = 3})
-                end
-            end,
+        
+        MainTab:CreateParagraph({
+            Title = "Huomio",
+            Content = "Jos ylempi ESP ei toimi, käytä alla olevasta Dev Tools -valikosta uutta 'Incoming Remote Spy' -ominaisuutta nähdäksesi mitä palvelin kertoo meille."
         })
 
         local DevTab = Window:CreateTab("Dev Tools 🛠️", 4483362458)
@@ -3093,6 +3099,32 @@ SettingsTab:CreateButton({
                     writefile("StealABrainrot_Scripts.txt", str)
                 end)
                 Rayfield:Notify({Title = "Dumped!", Content = "Saved to Workspace/StealABrainrot_Scripts.txt", Duration = 3})
+            end,
+        })
+        
+        DevTab:CreateSection("Incoming Remote Spy")
+        
+        DevTab:CreateButton({
+            Name = "Enable Incoming Remote Spy (F9 to view)",
+            Callback = function()
+                if _G.IncomingSpyEnabled then return end
+                _G.IncomingSpyEnabled = true
+                
+                for _, v in pairs(game:GetDescendants()) do
+                    if v:IsA("RemoteEvent") then
+                        pcall(function()
+                            v.OnClientEvent:Connect(function(...)
+                                local args = {...}
+                                local str = ""
+                                for i, arg in pairs(args) do
+                                    str = str .. tostring(arg) .. " | "
+                                end
+                                print("[LUMO SPY] Remote fired: " .. v.Name .. " Args: " .. str)
+                            end)
+                        end)
+                    end
+                end
+                Rayfield:Notify({Title = "Spy Enabled", Content = "Open F9 console to see incoming remote traffic.", Duration = 3})
             end,
         })
 
