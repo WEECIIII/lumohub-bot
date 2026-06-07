@@ -2932,8 +2932,141 @@ SettingsTab:CreateButton({
         
         Rayfield:LoadConfiguration()
 
-    else
+    elseif game.PlaceId == 128740661033853 or GameName:lower():find("dodge the lasers") then
         local Window = Rayfield:CreateWindow({
+            Name = "LumoHub Premium ⚡ | Dodge The Lasers",
+            LoadingTitle = "LumoHub Premium",
+            LoadingSubtitle = "Injecting Dodge The Lasers Scripts...",
+            ConfigurationSaving = { Enabled = false },
+            Discord = { Enabled = true, Invite = "qkCRXBeEpB", RememberJoins = true },
+            KeySystem = false
+        })
+
+        local MainTab = Window:CreateTab("Main Features ⭐", 4483362458)
+        local PlayerTab = Window:CreateTab("LocalPlayer 👤", 4483362458)
+        
+        MainTab:CreateSection("God Mode & Utilities")
+        
+        local GodMode = false
+        local godLoop = nil
+        MainTab:CreateToggle({
+            Name = "God Mode (Invincible)",
+            CurrentValue = false,
+            Flag = "DL_GodMode",
+            Callback = function(Value)
+                GodMode = Value
+                if Value then
+                    godLoop = game:GetService("RunService").Stepped:Connect(function()
+                        if GodMode then
+                            pcall(function()
+                                for _,v in pairs(workspace:GetDescendants()) do
+                                    if v:IsA("TouchTransmitter") and v.Parent and v.Parent.Name:lower():find("laser") then
+                                        v:Destroy()
+                                    elseif v:IsA("TouchTransmitter") and v.Parent and v.Parent.Parent and v.Parent.Parent.Name:lower():find("laser") then
+                                        v:Destroy()
+                                    end
+                                end
+                            end)
+                        end
+                    end)
+                else
+                    if godLoop then godLoop:Disconnect() end
+                end
+            end,
+        })
+        
+        MainTab:CreateButton({
+            Name = "Invisibility (Hide Character)",
+            Callback = function()
+                local char = game.Players.LocalPlayer.Character
+                if char then
+                    for _,v in pairs(char:GetDescendants()) do
+                        if v:IsA("BasePart") or v:IsA("Decal") then
+                            if v.Name ~= "HumanoidRootPart" then
+                                v.Transparency = 1
+                            end
+                        end
+                    end
+                    if char:FindFirstChild("Head") and char.Head:FindFirstChild("face") then
+                        char.Head.face:Destroy()
+                    end
+                end
+            end,
+        })
+        
+        MainTab:CreateSection("Level Changer")
+        
+        local targetLevel = 100
+        MainTab:CreateInput({
+            Name = "Level Amount",
+            PlaceholderText = "100",
+            RemoveTextAfterFocusLost = false,
+            Callback = function(Text)
+                targetLevel = tonumber(Text) or 100
+            end,
+        })
+        
+        MainTab:CreateButton({
+            Name = "Change Level (Local/No Anticheat)",
+            Callback = function()
+                pcall(function()
+                    local player = game.Players.LocalPlayer
+                    if player:FindFirstChild("leaderstats") and player.leaderstats:FindFirstChild("Level") then
+                        player.leaderstats.Level.Value = targetLevel
+                    elseif player:FindFirstChild("leaderstats") and player.leaderstats:FindFirstChild("Wins") then
+                        player.leaderstats.Wins.Value = targetLevel
+                    end
+                end)
+                Rayfield:Notify({Title = "Level Changed", Content = "Attempted to change Level/Wins to " .. tostring(targetLevel), Duration = 3})
+            end,
+        })
+        
+        PlayerTab:CreateSection("Movement")
+        
+        PlayerTab:CreateSlider({
+            Name = "Walk Speed",
+            Range = {16, 250},
+            Increment = 1,
+            Suffix = " WS",
+            CurrentValue = 16,
+            Flag = "DL_WS",
+            Callback = function(Value)
+                pcall(function() game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = Value end)
+            end,
+        })
+        
+        PlayerTab:CreateSlider({
+            Name = "Jump Power",
+            Range = {50, 200},
+            Increment = 1,
+            Suffix = " JP",
+            CurrentValue = 50,
+            Flag = "DL_JP",
+            Callback = function(Value)
+                pcall(function() game.Players.LocalPlayer.Character.Humanoid.JumpPower = Value end)
+            end,
+        })
+        
+        local InfJump = false
+        game:GetService("UserInputService").JumpRequest:Connect(function()
+            if InfJump then
+                pcall(function() game.Players.LocalPlayer.Character.Humanoid:ChangeState("Jumping") end)
+            end
+        end)
+        
+        PlayerTab:CreateToggle({
+            Name = "Infinite Jump",
+            CurrentValue = false,
+            Flag = "DL_InfJump",
+            Callback = function(Value)
+                InfJump = Value
+            end,
+        })
+
+        CreateProtectionsTab(Window)
+        Rayfield:LoadConfiguration()
+
+    else
             Name = "LumoHub Premium | Unsupported",
             LoadingTitle = "LumoHub Premium",
             LoadingSubtitle = "Game Not Supported",
