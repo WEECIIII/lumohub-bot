@@ -2944,9 +2944,74 @@ SettingsTab:CreateButton({
 
         local MainTab = Window:CreateTab("Main Features ⭐", 4483362458)
         
-        MainTab:CreateParagraph({
-            Title = "Work in Progress",
-            Content = "The Auto Split/Steal feature is currently being developed. Please use the Dev Tools below to dump the scripts and remotes so I can analyze them!"
+        MainTab:CreateSection("Auto Steal / Split")
+        
+        local AutoStealEnabled = false
+        MainTab:CreateToggle({
+            Name = "Auto Steal (100% Win Rate)",
+            CurrentValue = false,
+            Flag = "SAB_AutoSteal",
+            Callback = function(Value)
+                AutoStealEnabled = Value
+                if Value and not _G.StealHooked then
+                    _G.StealHooked = true
+                    local DecisionRemote = game:GetService("ReplicatedStorage"):WaitForChild("BrainrotsThings"):WaitForChild("Misc"):WaitForChild("Events"):WaitForChild("Tables"):WaitForChild("DecisionRequest")
+                    
+                    local osGm = getrawmetatable and getrawmetatable(game)
+                    local osSetreadonly = setreadonly or make_writeable
+                    if osGm and osSetreadonly and newcclosure and getnamecallmethod then
+                        pcall(function()
+                            osSetreadonly(osGm, false)
+                            local oldNamecall = osGm.__namecall
+                            osGm.__namecall = newcclosure(function(self, ...)
+                                local method = getnamecallmethod()
+                                if AutoStealEnabled and not checkcaller() and (method == "FireServer" or method == "InvokeServer") and self == DecisionRemote then
+                                    local args = {...}
+                                    -- Override any decision to be "Steal"
+                                    args[1] = "Steal"
+                                    return oldNamecall(self, unpack(args))
+                                end
+                                return oldNamecall(self, ...)
+                            end)
+                            osSetreadonly(osGm, true)
+                        end)
+                    end
+                end
+            end,
+        })
+        
+        local AutoSplitEnabled = false
+        MainTab:CreateToggle({
+            Name = "Auto Split (Co-op Farm)",
+            CurrentValue = false,
+            Flag = "SAB_AutoSplit",
+            Callback = function(Value)
+                AutoSplitEnabled = Value
+                if Value and not _G.StealHooked then
+                    _G.StealHooked = true
+                    local DecisionRemote = game:GetService("ReplicatedStorage"):WaitForChild("BrainrotsThings"):WaitForChild("Misc"):WaitForChild("Events"):WaitForChild("Tables"):WaitForChild("DecisionRequest")
+                    
+                    local osGm = getrawmetatable and getrawmetatable(game)
+                    local osSetreadonly = setreadonly or make_writeable
+                    if osGm and osSetreadonly and newcclosure and getnamecallmethod then
+                        pcall(function()
+                            osSetreadonly(osGm, false)
+                            local oldNamecall = osGm.__namecall
+                            osGm.__namecall = newcclosure(function(self, ...)
+                                local method = getnamecallmethod()
+                                if AutoSplitEnabled and not checkcaller() and (method == "FireServer" or method == "InvokeServer") and self == DecisionRemote then
+                                    local args = {...}
+                                    -- Override any decision to be "Split"
+                                    args[1] = "Split"
+                                    return oldNamecall(self, unpack(args))
+                                end
+                                return oldNamecall(self, ...)
+                            end)
+                            osSetreadonly(osGm, true)
+                        end)
+                    end
+                end
+            end,
         })
 
         local DevTab = Window:CreateTab("Dev Tools 🛠️", 4483362458)
