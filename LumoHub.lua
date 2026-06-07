@@ -2827,37 +2827,7 @@ SettingsTab:CreateButton({
         })
         CreateProtectionsTab(Window)
         
-        local DevTab = Window:CreateTab("Dev Tools 🔧", 4483362458)
-        DevTab:CreateSection("Script Dumper")
-        DevTab:CreateButton({
-            Name = "Dump Game Hierarchy to Clipboard",
-            Callback = function()
-                local dump = "=== RIVALS HIERARCHY DUMP ===\\n"
-                local function scan(parent, indent)
-                    if indent > 4 then return end
-                    for _, child in pairs(parent:GetChildren()) do
-                        dump = dump .. string.rep("  ", indent) .. child.Name .. " [" .. child.ClassName .. "]\\n"
-                        pcall(function() scan(child, indent + 1) end)
-                    end
-                end
-                
-                dump = dump .. "\\n--- LocalPlayer.PlayerScripts ---\\n"
-                pcall(function() scan(game.Players.LocalPlayer.PlayerScripts, 0) end)
-                
-                dump = dump .. "\\n--- ReplicatedStorage ---\\n"
-                pcall(function() scan(game:GetService("ReplicatedStorage"), 0) end)
-                
-                dump = dump .. "\\n--- LocalPlayer.Character ---\\n"
-                pcall(function() scan(game.Players.LocalPlayer.Character, 0) end)
-                
-                if setclipboard then
-                    setclipboard(dump)
-                    Rayfield:Notify({Title = "Dumped!", Content = "Hierarchy copied to clipboard!", Duration = 3})
-                else
-                    Rayfield:Notify({Title = "Error", Content = "Your executor does not support setclipboard!", Duration = 3})
-                end
-            end,
-        })
+
         
         local SettingsTab = Window:CreateTab("Settings ⚙️", 4483362458)
         SettingsTab:CreateSection("Menu Settings")
