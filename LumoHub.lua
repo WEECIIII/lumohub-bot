@@ -2623,6 +2623,18 @@ SettingsTab:CreateButton({
                 Callback = function(Value) ESP.ShowName = Value end,
             })
             MainTab:CreateToggle({
+                Name = "Enable ESP Health",
+                CurrentValue = true,
+                Flag = "Onetap_ESP_Health",
+                Callback = function(Value) ESP.ShowHealth = Value end,
+            })
+            MainTab:CreateToggle({
+                Name = "Enable ESP Distance",
+                CurrentValue = true,
+                Flag = "Onetap_ESP_Distance",
+                Callback = function(Value) ESP.ShowDistance = Value end,
+            })
+            MainTab:CreateToggle({
                 Name = "Enable ESP Tracers",
                 CurrentValue = true,
                 Flag = "Onetap_ESP_Tracers",
