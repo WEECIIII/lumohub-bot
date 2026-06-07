@@ -3009,7 +3009,53 @@ SettingsTab:CreateButton({
                             end)
                             osSetreadonly(osGm, true)
                         end)
-                    end
+                end
+            end,
+        })
+
+        MainTab:CreateSection("OP Exploits (Use at own risk)")
+
+        local SpamRewards = false
+        MainTab:CreateToggle({
+            Name = "Spam Free Rewards (OP)",
+            CurrentValue = false,
+            Flag = "SAB_SpamRewards",
+            Callback = function(Value)
+                SpamRewards = Value
+                if Value then
+                    spawn(function()
+                        local rs = game:GetService("ReplicatedStorage")
+                        local claimOffline = rs:FindFirstChild("Claim10OfflineEarnings", true)
+                        local requestOffline = rs:FindFirstChild("RequestOfflineEarnings", true)
+                        local tutorialMatch = rs:FindFirstChild("TutorialMatchResult", true)
+                        local giftsLoaded = rs:FindFirstChild("GiftedPassesLoaded", true)
+                        local settingsLoaded = rs:FindFirstChild("SettingsLoaded", true)
+
+                        while SpamRewards do
+                            pcall(function()
+                                if claimOffline then claimOffline:FireServer() end
+                                if requestOffline then requestOffline:FireServer() end
+                                if tutorialMatch then tutorialMatch:FireServer() end
+                                if giftsLoaded then giftsLoaded:FireServer() end
+                                if settingsLoaded then settingsLoaded:FireServer() end
+                            end)
+                            task.wait(0.05) -- Spam 20 times a second
+                        end
+                    end)
+                end
+            end,
+        })
+
+        MainTab:CreateButton({
+            Name = "Claim Tutorial Rewards instantly",
+            Callback = function()
+                local rs = game:GetService("ReplicatedStorage")
+                local tutorialMatch = rs:FindFirstChild("TutorialMatchResult", true)
+                if tutorialMatch then
+                    pcall(function() tutorialMatch:FireServer() end)
+                    Rayfield:Notify({Title = "Success", Content = "Fired TutorialMatchResult Remote!", Duration = 3})
+                else
+                    Rayfield:Notify({Title = "Error", Content = "Could not find Tutorial remote.", Duration = 3})
                 end
             end,
         })
