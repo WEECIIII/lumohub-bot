@@ -3045,12 +3045,22 @@ SettingsTab:CreateButton({
                                 local getMatchState = game:GetService("ReplicatedStorage"):FindFirstChild("GetMatchState", true)
                                 if getMatchState then
                                     local state = getMatchState:InvokeServer()
-                                    local stateStr = tostring(state)
-                                    if string.find(stateStr, "Split") or string.find(stateStr, "Steal") then
-                                        if stateStr ~= lastNotified then
-                                            Rayfield:Notify({Title = "Match State päivittyi!", Content = "Tila sisältää: " .. stateStr, Duration = 5})
-                                            lastNotified = stateStr
+                                    
+                                    local function printTable(t, indent)
+                                        indent = indent or ""
+                                        for k, v in pairs(t) do
+                                            if type(v) == "table" then
+                                                print(indent .. tostring(k) .. ":")
+                                                printTable(v, indent .. "  ")
+                                            else
+                                                print(indent .. tostring(k) .. ": " .. tostring(v))
+                                            end
                                         end
+                                    end
+                                    
+                                    if type(state) == "table" then
+                                        print("[LUMO ESP] Match State Dump:")
+                                        printTable(state)
                                     end
                                 end
                             end)
