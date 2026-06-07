@@ -3067,6 +3067,7 @@ SettingsTab:CreateButton({
         Rayfield:LoadConfiguration()
 
     else
+        local Window = Rayfield:CreateWindow({
             Name = "LumoHub Premium | Unsupported",
             LoadingTitle = "LumoHub Premium",
             LoadingSubtitle = "Game Not Supported",
