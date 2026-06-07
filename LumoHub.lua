@@ -3009,6 +3009,7 @@ SettingsTab:CreateButton({
                             end)
                             osSetreadonly(osGm, true)
                         end)
+                    end
                 end
             end,
         })
