@@ -2932,6 +2932,57 @@ SettingsTab:CreateButton({
         
         Rayfield:LoadConfiguration()
 
+    elseif game.PlaceId == 70959844973091 or GameName:lower():find("steal a brainrot") then
+        local Window = Rayfield:CreateWindow({
+            Name = "LumoHub Premium 🧠 | Steal A Brainrot",
+            LoadingTitle = "LumoHub Premium",
+            LoadingSubtitle = "Injecting Steal A Brainrot Scripts...",
+            ConfigurationSaving = { Enabled = false },
+            Discord = { Enabled = true, Invite = "qkCRXBeEpB", RememberJoins = true },
+            KeySystem = false
+        })
+
+        local MainTab = Window:CreateTab("Main Features ⭐", 4483362458)
+        
+        MainTab:CreateParagraph({
+            Title = "Work in Progress",
+            Content = "The Auto Split/Steal feature is currently being developed. Please use the Dev Tools below to dump the scripts and remotes so I can analyze them!"
+        })
+
+        local DevTab = Window:CreateTab("Dev Tools 🛠️", 4483362458)
+        DevTab:CreateSection("Script & Remote Dumper")
+        
+        DevTab:CreateButton({
+            Name = "Dump All RemoteEvents to Clipboard",
+            Callback = function()
+                local str = "--- STEAL A BRAINROT REMOTES ---\n"
+                for _, v in pairs(game:GetDescendants()) do
+                    if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
+                        pcall(function() str = str .. v:GetFullName() .. " [" .. v.ClassName .. "]\n" end)
+                    end
+                end
+                pcall(function() setclipboard(str) end)
+                Rayfield:Notify({Title = "Dumped!", Content = "All Remotes copied to clipboard.", Duration = 3})
+            end,
+        })
+        
+        DevTab:CreateButton({
+            Name = "Dump All Scripts (Paths) to Clipboard",
+            Callback = function()
+                local str = "--- STEAL A BRAINROT SCRIPTS ---\n"
+                for _, v in pairs(game:GetDescendants()) do
+                    if v:IsA("LocalScript") or v:IsA("ModuleScript") then
+                        pcall(function() str = str .. v:GetFullName() .. " [" .. v.ClassName .. "]\n" end)
+                    end
+                end
+                pcall(function() setclipboard(str) end)
+                Rayfield:Notify({Title = "Dumped!", Content = "All Script paths copied to clipboard.", Duration = 3})
+            end,
+        })
+
+        CreateProtectionsTab(Window)
+        Rayfield:LoadConfiguration()
+
     else
         local Window = Rayfield:CreateWindow({
             Name = "LumoHub Premium | Unsupported",
