@@ -2953,7 +2953,7 @@ SettingsTab:CreateButton({
         DevTab:CreateSection("Script & Remote Dumper")
         
         DevTab:CreateButton({
-            Name = "Dump All RemoteEvents to Clipboard",
+            Name = "Dump All RemoteEvents to Workspace",
             Callback = function()
                 local str = "--- STEAL A BRAINROT REMOTES ---\n"
                 for _, v in pairs(game:GetDescendants()) do
@@ -2961,13 +2961,15 @@ SettingsTab:CreateButton({
                         pcall(function() str = str .. v:GetFullName() .. " [" .. v.ClassName .. "]\n" end)
                     end
                 end
-                pcall(function() setclipboard(str) end)
-                Rayfield:Notify({Title = "Dumped!", Content = "All Remotes copied to clipboard.", Duration = 3})
+                pcall(function() 
+                    writefile("StealABrainrot_Remotes.txt", str)
+                end)
+                Rayfield:Notify({Title = "Dumped!", Content = "Saved to Workspace/StealABrainrot_Remotes.txt", Duration = 3})
             end,
         })
         
         DevTab:CreateButton({
-            Name = "Dump All Scripts (Paths) to Clipboard",
+            Name = "Dump All Scripts (Paths) to Workspace",
             Callback = function()
                 local str = "--- STEAL A BRAINROT SCRIPTS ---\n"
                 for _, v in pairs(game:GetDescendants()) do
@@ -2975,8 +2977,10 @@ SettingsTab:CreateButton({
                         pcall(function() str = str .. v:GetFullName() .. " [" .. v.ClassName .. "]\n" end)
                     end
                 end
-                pcall(function() setclipboard(str) end)
-                Rayfield:Notify({Title = "Dumped!", Content = "All Script paths copied to clipboard.", Duration = 3})
+                pcall(function() 
+                    writefile("StealABrainrot_Scripts.txt", str)
+                end)
+                Rayfield:Notify({Title = "Dumped!", Content = "Saved to Workspace/StealABrainrot_Scripts.txt", Duration = 3})
             end,
         })
 
