@@ -2594,156 +2594,87 @@ SettingsTab:CreateButton({
 
         local MainTab = Window:CreateTab("Combat ⚔️", 4483362458)
         
-        -- Rivals ESP Visuals (NATIVE CRASH-PROOF)
-        MainTab:CreateSection("Visuals (Onetap Custom ESP)")
-        
-        local ESP_Config = {
-            Enabled = true,
-            TeamCheck = true,
-            Color = Color3.fromRGB(255, 255, 255),
-            ShowName = true,
-            ShowHealth = true,
-            ShowDistance = true
-        }
-        _G.OnetapTeamCheck = true
-
-        local function UpdateCustomESP()
-            local Players = game:GetService("Players")
-            local localPlayer = Players.LocalPlayer
-            local camera = workspace.CurrentCamera
-
-            for _, player in pairs(Players:GetPlayers()) do
-                if player ~= localPlayer then
-                    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character:FindFirstChild("Humanoid") and player.Character.Humanoid.Health > 0 then
-                        
-                        -- Team Check Logic
-                        local isTeammate = false
-                        if ESP_Config.TeamCheck then
-                            if localPlayer.Team and player.Team and localPlayer.Team == player.Team then isTeammate = true end
-                            local myAttr = localPlayer:GetAttribute("Team")
-                            local theirAttr = player:GetAttribute("Team")
-                            if myAttr and theirAttr and myAttr == theirAttr then isTeammate = true end
-                        end
-
-                        -- ESP Parent
-                        local espFolder = player.Character:FindFirstChild("LumoHub_ESP")
-                        if not espFolder then
-                            espFolder = Instance.new("Folder")
-                            espFolder.Name = "LumoHub_ESP"
-                            espFolder.Parent = player.Character
-                            
-                            local highlight = Instance.new("Highlight")
-                            highlight.Name = "Highlight"
-                            highlight.Parent = espFolder
-                            highlight.FillTransparency = 0.5
-                            highlight.OutlineTransparency = 0.1
-                            
-                            local bgui = Instance.new("BillboardGui")
-                            bgui.Name = "Info"
-                            bgui.Parent = espFolder
-                            bgui.AlwaysOnTop = true
-                            bgui.Size = UDim2.new(0, 150, 0, 50)
-                            bgui.StudsOffset = Vector3.new(0, 3, 0)
-                            bgui.Adornee = player.Character.Head
-                            
-                            local textLabel = Instance.new("TextLabel")
-                            textLabel.Name = "Text"
-                            textLabel.Parent = bgui
-                            textLabel.BackgroundTransparency = 1
-                            textLabel.Size = UDim2.new(1, 0, 1, 0)
-                            textLabel.Font = Enum.Font.GothamBold
-                            textLabel.TextSize = 12
-                            textLabel.TextStrokeTransparency = 0
-                        end
-
-                        -- Update Visibility & Visuals
-                        local highlight = espFolder:FindFirstChild("Highlight")
-                        local bgui = espFolder:FindFirstChild("Info")
-                        
-                        if not ESP_Config.Enabled or isTeammate or player.Character:FindFirstChildOfClass("ForceField") then
-                            if highlight then highlight.Enabled = false end
-                            if bgui then bgui.Enabled = false end
-                        else
-                            if highlight then
-                                highlight.Enabled = true
-                                highlight.FillColor = ESP_Config.Color
-                                highlight.OutlineColor = ESP_Config.Color
-                            end
-                            if bgui then
-                                bgui.Enabled = true
-                                local txt = bgui:FindFirstChild("Text")
-                                if txt then
-                                    local infoStr = ""
-                                    if ESP_Config.ShowName then infoStr = infoStr .. player.Name .. "\n" end
-                                    if ESP_Config.ShowHealth then 
-                                        local hp = math.floor(player.Character.Humanoid.Health)
-                                        local maxHp = math.floor(player.Character.Humanoid.MaxHealth)
-                                        infoStr = infoStr .. "[" .. hp .. "/" .. maxHp .. " HP]\n" 
-                                    end
-                                    if ESP_Config.ShowDistance then
-                                        local dist = math.floor((camera.CFrame.Position - player.Character.HumanoidRootPart.Position).Magnitude)
-                                        infoStr = infoStr .. dist .. "m"
-                                    end
-                                    txt.Text = infoStr
-                                    txt.TextColor3 = ESP_Config.Color
-                                end
-                            end
-                        end
-                    else
-                        if player.Character and player.Character:FindFirstChild("LumoHub_ESP") then
-                            player.Character.LumoHub_ESP:Destroy()
-                        end
-                    end
+        -- Rivals ESP Visuals
+        -- Onetap ESP Logic
+        local success, ESP = pcall(function() return loadstring(game:HttpGet("https://raw.githubusercontent.com/linemaster2/esp-library/main/library.lua"))() end)
+        if not success or type(ESP) ~= "table" then
+            Rayfield:Notify({Title = "Error", Content = "Failed to load ESP library!", Duration = 5})
+        else
+            ESP.Enabled = true
+            ESP.TeamCheck = true
+            ESP.ShowBox = true
+            ESP.ShowName = true
+            ESP.ShowHealth = true
+            ESP.ShowTracer = true
+            ESP.ShowDistance = true
+            ESP.ShowSkeletons = false
+            
+            MainTab:CreateSection("Visuals (Onetap)")
+            MainTab:CreateToggle({
+                Name = "Enable ESP Boxes",
+                CurrentValue = true,
+                Flag = "Onetap_ESP_Boxes",
+                Callback = function(Value) ESP.ShowBox = Value end,
+            })
+            MainTab:CreateToggle({
+                Name = "Enable ESP Names",
+                CurrentValue = true,
+                Flag = "Onetap_ESP_Names",
+                Callback = function(Value) ESP.ShowName = Value end,
+            })
+            MainTab:CreateToggle({
+                Name = "Enable ESP Health",
+                CurrentValue = true,
+                Flag = "Onetap_ESP_Health",
+                Callback = function(Value) ESP.ShowHealth = Value end,
+            })
+            MainTab:CreateToggle({
+                Name = "Enable ESP Distance",
+                CurrentValue = true,
+                Flag = "Onetap_ESP_Distance",
+                Callback = function(Value) ESP.ShowDistance = Value end,
+            })
+            MainTab:CreateToggle({
+                Name = "Enable ESP Tracers",
+                CurrentValue = true,
+                Flag = "Onetap_ESP_Tracers",
+                Callback = function(Value) ESP.ShowTracer = Value end,
+            })
+            MainTab:CreateToggle({
+                Name = "Enable ESP Skeletons",
+                CurrentValue = false,
+                Flag = "Onetap_ESP_Skeletons",
+                Callback = function(Value) ESP.ShowSkeletons = Value end,
+            })
+            MainTab:CreateDropdown({
+                Name = "ESP Box Type",
+                Options = {"2D", "Corner Box Esp"},
+                CurrentOption = {"2D"},
+                MultipleOptions = false,
+                Flag = "Onetap_ESP_BoxType",
+                Callback = function(Value) ESP.BoxType = Value[1] end,
+            })
+            MainTab:CreateColorPicker({
+                Name = "ESP Color",
+                Color = Color3.fromRGB(255, 255, 255),
+                Flag = "Onetap_ESP_Color",
+                Callback = function(Value)
+                    ESP.BoxColor = Value
+                    ESP.NameColor = Value
+                    ESP.TracerColor = Value
+                    ESP.SkeletonsColor = Value
                 end
-            end
+            })
+            MainTab:CreateToggle({
+                Name = "Team Check (Ignore Teammates)",
+                CurrentValue = true,
+                Flag = "Onetap_TeamCheck",
+                Callback = function(Value) 
+                    ESP.TeamCheck = Value 
+                    _G.OnetapTeamCheck = Value
+                end,
+            })
         end
-
-        if _G.LumoHub_RivalsESP then _G.LumoHub_RivalsESP:Disconnect() end
-        _G.LumoHub_RivalsESP = game:GetService("RunService").RenderStepped:Connect(function()
-            pcall(UpdateCustomESP)
-        end)
-        table.insert(_G.LumoHub_Connections, _G.LumoHub_RivalsESP)
-
-        MainTab:CreateToggle({
-            Name = "Enable ESP Highlights",
-            CurrentValue = true,
-            Flag = "Onetap_ESP_Boxes",
-            Callback = function(Value) ESP_Config.Enabled = Value end,
-        })
-        MainTab:CreateToggle({
-            Name = "Enable ESP Names",
-            CurrentValue = true,
-            Flag = "Onetap_ESP_Names",
-            Callback = function(Value) ESP_Config.ShowName = Value end,
-        })
-        MainTab:CreateToggle({
-            Name = "Enable ESP Health",
-            CurrentValue = true,
-            Flag = "Onetap_ESP_Health",
-            Callback = function(Value) ESP_Config.ShowHealth = Value end,
-        })
-        MainTab:CreateToggle({
-            Name = "Enable ESP Distance",
-            CurrentValue = true,
-            Flag = "Onetap_ESP_Distance",
-            Callback = function(Value) ESP_Config.ShowDistance = Value end,
-        })
-        MainTab:CreateColorPicker({
-            Name = "ESP Color",
-            Color = Color3.fromRGB(255, 255, 255),
-            Flag = "Onetap_ESP_Color",
-            Callback = function(Value) ESP_Config.Color = Value end
-        })
-        MainTab:CreateToggle({
-            Name = "Team Check (Ignore Teammates)",
-            CurrentValue = true,
-            Flag = "Onetap_TeamCheck",
-            Callback = function(Value) 
-                ESP_Config.TeamCheck = Value 
-                _G.OnetapTeamCheck = Value
-            end,
-        })
-
         
         -- Onetap Aimbot Logic
         local aimbotEnabled = true
@@ -2863,12 +2794,6 @@ SettingsTab:CreateButton({
         end
 
         MainTab:CreateSection("Aimbot (Onetap)")
-        
-        -- Start the aimbot loop immediately when loaded
-        if aimbotEnabled then
-            aimAtTarget()
-        end
-        
         MainTab:CreateToggle({
             Name = "Right-Click Aim Lock",
             CurrentValue = true,
