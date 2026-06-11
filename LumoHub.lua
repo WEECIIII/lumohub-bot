@@ -2863,6 +2863,12 @@ SettingsTab:CreateButton({
         end
 
         MainTab:CreateSection("Aimbot (Onetap)")
+        
+        -- Start the aimbot loop immediately when loaded
+        if aimbotEnabled then
+            aimAtTarget()
+        end
+        
         MainTab:CreateToggle({
             Name = "Right-Click Aim Lock",
             CurrentValue = true,
