@@ -13,6 +13,14 @@ const {
     GITHUB_TOKEN
 } = process.env;
 
+process.on('unhandledRejection', error => {
+    console.error('[Anti-Crash] Unhandled promise rejection:', error);
+});
+
+process.on('uncaughtException', error => {
+    console.error('[Anti-Crash] Uncaught exception:', error);
+});
+
 const ANNOUNCE_CHANNEL_ID = '1509993539176759479';
 const OWNER_ROLE_ID = '1509998989813088521';
 const KEYS_ROLE_ID = '1510000218454888559';
@@ -27,6 +35,7 @@ const DB_GIST_ID = '04e038c9d00af7930b2d34ffdc7d9ed9';
 // validKeys: key => { expiresAt, generatedBy, duration }
 let validKeys = new Map();
 let userCooldown = new Map(); // userId => generatedAt
+let totalKeysGenerated = 0; // Total all-time keys generated
 
 // Helper to check if a user has the Keys Role OR the Owner Role (can access key commands)
 function hasKeysRole(member) {
@@ -82,6 +91,21 @@ async function loadData() {
             userCooldown = new Map(Object.entries(parsedCD));
             console.log(`[LumoHub DB] Loaded ${userCooldown.size} cooldowns from cloud.`);
         }
+        
+        if (files['stats.json'] && files['stats.json'].content) {
+            try {
+                const parsedStats = JSON.parse(files['stats.json'].content);
+                totalKeysGenerated = parsedStats.totalKeysGenerated || 0;
+            } catch (e) {
+                console.error('[LumoHub DB] Error parsing stats:', e.message);
+            }
+        }
+        
+        // Ensure total is at least current valid keys
+        if (totalKeysGenerated < validKeys.size) {
+            totalKeysGenerated = validKeys.size;
+        }
+        console.log(`[LumoHub DB] Total keys generated so far: ${totalKeysGenerated}`);
     } catch (e) {
         console.error('[LumoHub DB] Load data error:', e.message);
     }
@@ -97,7 +121,8 @@ async function saveData() {
         await axios.patch(`https://api.github.com/gists/${DB_GIST_ID}`, {
             files: {
                 'keys.json': { content: JSON.stringify(keysObj, null, 2) },
-                'cooldowns.json': { content: JSON.stringify(cdObj, null, 2) }
+                'cooldowns.json': { content: JSON.stringify(cdObj, null, 2) },
+                'stats.json': { content: JSON.stringify({ totalKeysGenerated }, null, 2) }
             }
         }, {
             headers: { Authorization: `token ${GITHUB_TOKEN}` }
@@ -264,6 +289,10 @@ const commands = [
         .setDescription('Post the LumoHub game execution status to the status channel (Admin Only)')
         .toJSON(),
     new SlashCommandBuilder()
+        .setName('stats')
+        .setDescription('View LumoHub statistics')
+        .toJSON(),
+    new SlashCommandBuilder()
         .setName('setuptickets')
         .setDescription('Setup the ticket system panel (Admin Only)')
         .toJSON(),
@@ -376,6 +405,7 @@ client.on('interactionCreate', async interaction => {
             duration: '1h'
         });
         userCooldown.set(user.id, now);
+        totalKeysGenerated++;
         saveData();
 
         // Private reply in channel
@@ -720,6 +750,21 @@ client.on('interactionCreate', async interaction => {
             console.error('[LumoHub] Post status failed:', err.message);
             return interaction.reply({ content: `❌ Failed to send status message: ${err.message}`, ephemeral: true });
         }
+    }
+
+    // ── /stats ────────────────────────────────────────────────────
+    if (commandName === 'stats') {
+        const statsEmbed = new EmbedBuilder()
+            .setTitle('📊 LumoHub Statistics')
+            .setColor(0xFECC23)
+            .addFields(
+                { name: '🔑 Total Keys Generated', value: `**${totalKeysGenerated}**`, inline: true },
+                { name: '🟢 Active Valid Keys', value: `**${validKeys.size}**`, inline: true }
+            )
+            .setFooter({ text: 'LumoHub Bot' })
+            .setTimestamp();
+
+        return interaction.reply({ embeds: [statsEmbed], ephemeral: true });
     }
 
     // ── /giveaway (Admin Only) ────────────────────────────────────
